@@ -1,0 +1,103 @@
+<div class="position-sticky pt-3">
+  <ul class="nav flex-column">
+    <li class="nav-item">
+      <a class="nav-link" href="/">
+        <i class="bi bi-house-door"></i> Trang chủ
+      </a>
+    </li>
+
+    <% if (['admin', 'so_gd'].includes(user.role)) { %>
+      <li class="nav-item">
+        <a class="nav-link" href="/enrollments">
+          <i class="bi bi-clipboard-check"></i> Tuyển sinh
+        </a>
+      </li>
+    <% } %>
+
+    <% if (['admin', 'hieu_truong', 'gv_chu_nhiem', 'gv_bo_mon'].includes(user.role)) { %>
+      <li class="nav-item">
+        <a class="nav-link" href="/students">
+          <i class="bi bi-people"></i> Học sinh
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/classes">
+          <i class="bi bi-diagram-3"></i> Lớp học
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/grades">
+          <i class="bi bi-journal-text"></i> Quản lý điểm
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/attendance">
+          <i class="bi bi-calendar-check"></i> Điểm danh
+        </a>
+      </li>
+    <% } %>
+
+    <% if (user.role === 'hoc_sinh') { %>
+      <li class="nav-item">
+        <a class="nav-link" href="/my-grades">
+          <i class="bi bi-journal-text"></i> Điểm của tôi
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/my-attendance">
+          <i class="bi bi-calendar-check"></i> Điểm danh
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/assignments">
+          <i class="bi bi-file-earmark-text"></i> Bài tập
+        </a>
+      </li>
+    <% } %>
+
+    <li class="nav-item">
+      <a class="nav-link" href="/announcements">
+        <i class="bi bi-megaphone"></i> Thông báo
+      </a>
+    </li>
+
+    <% if (['admin', 'hieu_truong'].includes(user.role)) { %>
+      <li class="nav-item">
+        <a class="nav-link" href="/payments">
+          <i class="bi bi-cash-coin"></i> Học phí
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/teachers">
+          <i class="bi bi-person-badge"></i> Giáo viên
+        </a>
+      </li>
+    <% } %>
+
+    <% if (user.role === 'admin') { %>
+      <li class="nav-item mt-3">
+        <h6 class="sidebar-heading px-3 text-muted">Quản trị</h6>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/admin/users">
+          <i class="bi bi-people"></i> Người dùng
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/admin/schools">
+          <i class="bi bi-building"></i> Trường học
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/admin/subjects">
+          <i class="bi bi-book"></i> Môn học
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/admin/logs">
+          <i class="bi bi-clock-history"></i> Nhật ký hệ thống
+        </a>
+      </li>
+    <% } %>
+  </ul>
+</div>
