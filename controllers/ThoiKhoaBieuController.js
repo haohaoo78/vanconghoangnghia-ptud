@@ -1,8 +1,6 @@
-// controllers/ThoiKhoaBieuController.js
 const ThoiKhoaBieu = require('../models/ThoiKhoaBieu');
 
 class ThoiKhoaBieuController {
-  // === Render trang chính ===
   async renderPage(req, res) {
     try {
       const khoiList = await ThoiKhoaBieu.getKhoiList();
@@ -21,7 +19,6 @@ class ThoiKhoaBieuController {
         khoiList,
         classes,
         subjects: [],
-        classSubjectTeacher: [],
         namHocList,
         kyHocList,
         timetable: {},
@@ -39,25 +36,18 @@ class ThoiKhoaBieuController {
     }
   }
 
-  // === API: Lấy lớp theo khối ===
   async getLopTheoKhoi(req, res) {
     try {
       const { MaKhoi } = req.body;
       if (!MaKhoi) return res.json([]);
-
-      const [rows] = await ThoiKhoaBieu.db.execute(
-        'SELECT MaLop, TenLop FROM Lop WHERE Khoi = ? ORDER BY TenLop',
-        [MaKhoi]
-      );
-
-      res.json(rows);
+      const classes = await ThoiKhoaBieu.getClassesByKhoi(MaKhoi);
+      res.json(classes);
     } catch (err) {
-      console.error('Lỗi lấy lớp theo khối:', err);
+      console.error(err);
       res.status(500).json({ error: 'Lỗi truy vấn lớp theo khối' });
     }
   }
 
-  // === API: Lấy học kỳ theo năm học ===
   async getKyHocList(req, res) {
     try {
       const { NamHoc } = req.body;
@@ -69,28 +59,17 @@ class ThoiKhoaBieuController {
     }
   }
 
-  // === API: Lấy môn + giáo viên theo lớp ===
   async getSubjectsByClass(req, res) {
     try {
-      const { MaLop } = req.body;
-      if (!MaLop) return res.json([]);
-
-      const subjects = await ThoiKhoaBieu.getSubjectsByClass(MaLop);
-
-      // Nếu chưa có giáo viên, gán mặc định thông báo
-      const subjectsWithTeacher = subjects.map(s => ({
-        TenMonHoc: s.TenMonHoc,
-        TenGiaoVien: s.TenGiaoVien || 'Môn này chưa phân công bộ môn'
-      }));
-
-      res.json(subjectsWithTeacher);
+      const { MaLop, NamHoc, KyHoc } = req.body;
+      const subjects = await ThoiKhoaBieu.getSubjectsWithTeacherByClass(MaLop, NamHoc, KyHoc);
+      res.json(subjects);
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: 'Lỗi khi lấy môn theo lớp' });
+      res.status(500).json({ error: 'Lỗi khi lấy môn đã phân công giáo viên cho lớp' });
     }
   }
 
-  // === API: Lấy giáo viên dạy môn cho lớp ===
   async getTeacher(req, res) {
     try {
       const { MaLop, TenMonHoc } = req.body;
@@ -102,7 +81,6 @@ class ThoiKhoaBieuController {
     }
   }
 
-  // === API: Load TKB (khi bấm nút Hiển thị) ===
   async getAll(req, res) {
     try {
       let { MaLop, NamHoc, KyHoc, LoaiTKB } = req.body;
@@ -116,14 +94,7 @@ class ThoiKhoaBieuController {
       const selectedNamHocStart =
         kyHocListObj.find(k => k.KyHoc === KyHoc)?.NgayBatDau || '2025-08-01';
 
-      // ✅ Lấy danh sách môn theo lớp
-      const subjectsRaw = await ThoiKhoaBieu.getSubjectsByClass(MaLop);
-      const subjects = subjectsRaw.map(s => ({
-        TenMonHoc: s.TenMonHoc,
-        TenGiaoVien: s.TenGiaoVien || 'Môn này chưa phân công bộ môn'
-      }));
-
-      // ✅ Lấy thời khóa biểu
+      const subjects = await ThoiKhoaBieu.getSubjectsWithTeacherByClass(MaLop, NamHoc, KyHoc);
       const timetable = await ThoiKhoaBieu.getGrid(MaLop, LoaiTKB, NamHoc, KyHoc);
 
       res.json({
@@ -138,7 +109,6 @@ class ThoiKhoaBieuController {
     }
   }
 
-  // === API: Lưu TKB ===
   async saveAll(req, res) {
     try {
       const { timetable } = req.body;
@@ -150,7 +120,6 @@ class ThoiKhoaBieuController {
     }
   }
 
-  // === API: Reset tuần ===
   async resetWeek(req, res) {
     try {
       const { MaLop, NamHoc, KyHoc, LoaiTKB } = req.body;

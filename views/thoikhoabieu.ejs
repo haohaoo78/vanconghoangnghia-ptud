@@ -28,7 +28,7 @@ select,input{width:100%;box-sizing:border-box;}
     <select id="Khoi" name="Khoi" required>
       <option value="">--Chọn khối--</option>
       <% khoiList.forEach(k => { %>
-        <option value="<%= k.MaKhoi %>"><%= k.TenKhoi %></option>
+        <option value="<%= k.MaKhoi %>" <%= k.MaKhoi===selectedKhoi?'selected':'' %>><%= k.TenKhoi %></option>
       <% }) %>
     </select>
   </label>
@@ -36,13 +36,16 @@ select,input{width:100%;box-sizing:border-box;}
   <label>Lớp:
     <select name="MaLop" id="MaLop" required>
       <option value="">--Chọn lớp--</option>
+      <% classes.forEach(c => { %>
+        <option value="<%= c.MaLop %>" <%= c.MaLop===selectedClass?'selected':'' %>><%= c.TenLop %></option>
+      <% }) %>
     </select>
   </label>
 
   <label>Năm học:
     <select name="NamHoc" id="NamHoc">
       <% namHocList.forEach(nh=>{ %>
-      <option value="<%= nh %>" <%= nh===selectedNamHoc?'selected':'' %>><%= nh %></option>
+        <option value="<%= nh %>" <%= nh===selectedNamHoc?'selected':'' %>><%= nh %></option>
       <% }) %>
     </select>
   </label>
@@ -50,7 +53,7 @@ select,input{width:100%;box-sizing:border-box;}
   <label>Học kỳ:
     <select name="KyHoc" id="KyHoc">
       <% kyHocList.forEach(ky => { %>
-      <option value="<%= ky %>" <%= ky===selectedKyHoc?'selected':'' %>><%= ky %></option>
+        <option value="<%= ky %>" <%= ky===selectedKyHoc?'selected':'' %>><%= ky %></option>
       <% }) %>
     </select>
   </label>
@@ -59,7 +62,7 @@ select,input{width:100%;box-sizing:border-box;}
     <select name="LoaiTKB" id="LoaiTKB">
       <option value="Chuan" <%= selectedLoaiTKB==='Chuan'?'selected':'' %>>TKB chuẩn</option>
       <% for(let w=1; w<=20; w++){ %>
-      <option value="Tuan<%= w %>" <%= selectedLoaiTKB==='Tuan'+w?'selected':'' %>>Tuần <%= w %></option>
+        <option value="Tuan<%= w %>" <%= selectedLoaiTKB==='Tuan'+w?'selected':'' %>>Tuần <%= w %></option>
       <% } %>
     </select>
   </label>
@@ -87,164 +90,148 @@ const NamHocSelect = document.getElementById('NamHoc');
 const KyHocSelect = document.getElementById('KyHoc');
 const LoaiTKBSelect = document.getElementById('LoaiTKB');
 
-let subjectsByKhoi = []; // danh sách môn của khối
+let subjectsByClass = [];
 
-// ✅ Khi chọn KHỐI => load lại danh sách LỚP và MÔN theo khối
+// Khi chọn khối => load lớp
 KhoiSelect.addEventListener('change', async () => {
   const MaKhoi = KhoiSelect.value;
   LopSelect.innerHTML = `<option value="">--Chọn lớp--</option>`;
-  subjectsByKhoi = [];
+  subjectsByClass = [];
+  if(!MaKhoi) return;
 
-  if (!MaKhoi) return;
-
-  try {
-    // 1️⃣ Lấy danh sách lớp
-    const res1 = await fetch('/api/thoikhoabieu/getLopTheoKhoi', {
+  try{
+    const res = await fetch('/api/thoikhoabieu/getLopTheoKhoi', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ MaKhoi })
     });
-    const lopData = await res1.json();
-    if (lopData.length > 0) {
-      LopSelect.innerHTML = lopData.map(l => `<option value="${l.MaLop}">${l.TenLop}</option>`).join('');
-    } else {
-      LopSelect.innerHTML = `<option value="">--Không có lớp--</option>`;
+    const lopData = await res.json();
+    if(lopData.length>0){
+      LopSelect.innerHTML = lopData.map(l=>`<option value="${l.MaLop}">${l.TenLop}</option>`).join('');
     }
-
-    // 2️⃣ Lấy danh sách môn theo khối
-    const res2 = await fetch('/api/thoikhoabieu/getMonTheoKhoi', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ MaKhoi })
-    });
-    subjectsByKhoi = await res2.json();
-
-  } catch(err) {
-    console.error(err);
-  }
+  }catch(err){ console.error(err); }
 });
 
-// ✅ Khi đổi Năm học => load lại học kỳ theo năm
-NamHocSelect.addEventListener('change', async () => {
-  try {
+// Khi đổi Năm học => load lại học kỳ
+NamHocSelect.addEventListener('change', async ()=>{
+  try{
     const res = await fetch('/api/thoikhoabieu/getKyHocList', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ NamHoc: NamHocSelect.value })
     });
     const list = await res.json();
-    KyHocSelect.innerHTML = list.length > 0
-      ? list.map(k => `<option value="${k.KyHoc}">${k.KyHoc}</option>`).join('')
+    KyHocSelect.innerHTML = list.length>0
+      ? list.map(k=>`<option value="${k.KyHoc}">${k.KyHoc}</option>`).join('')
       : `<option value="">--Chọn học kỳ--</option>`;
-  } catch(err) { console.error(err); }
+  }catch(err){ console.error(err); }
 });
 
-// ✅ Chỉ tải TKB khi bấm nút “Hiển thị”
-FilterForm.addEventListener('submit', e => {
+// Khi bấm Hiển thị
+FilterForm.addEventListener('submit', e=>{
   e.preventDefault();
   loadTKB();
 });
 
-async function loadTKB() {
+async function loadTKB(){
   const formData = Object.fromEntries(new FormData(FilterForm).entries());
-  if (!formData.MaLop || !formData.NamHoc || !formData.Khoi) {
-    alert('Vui lòng chọn đầy đủ Khối, Lớp và Năm học');
-    return;
-  }
+  if(!formData.MaLop || !formData.NamHoc){ alert('Chọn đủ Lớp và Năm học'); return; }
 
-  try {
-    const res = await fetch('/api/thoikhoabieu/getAll', {
+  try{
+    const res = await fetch('/api/thoikhoabieu/getAll',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(formData)
+      body: JSON.stringify(formData)
     });
     const json = await res.json();
-    document.getElementById('status').innerText = json.statusMessage || '';
-    const { timetable = {}, selectedNamHocStart } = json;
+    document.getElementById('status').innerText = json.statusMessage||'';
+    subjectsByClass = json.subjects||[];
+    const timetable = json.timetable||{};
+    const startDate = new Date(json.selectedNamHocStart||'2025-08-01');
 
-    let startDate = new Date(selectedNamHocStart);
-    let weekNumber = formData.LoaiTKB.startsWith('Tuan') ? parseInt(formData.LoaiTKB.replace('Tuan','')) : 1;
-    if (weekNumber > 1) startDate.setDate(startDate.getDate() + (weekNumber - 1) * 7);
-
-    let html = `<thead><tr><th>Tiết / Thứ</th>`;
-    for(let d=2; d<=7; d++){
-      const dayDate = new Date(startDate); dayDate.setDate(startDate.getDate() + (d-2));
-      html += `<th>Thứ ${d} (${dayDate.toLocaleDateString('vi-VN')})</th>`;
+    // Xây table
+    let html=`<thead><tr><th>Tiết / Thứ</th>`;
+    for(let d=2;d<=7;d++){
+      const dayDate = new Date(startDate); dayDate.setDate(startDate.getDate()+(d-2));
+      html+=`<th>Thứ ${d} (${dayDate.toLocaleDateString('vi-VN')})</th>`;
     }
-    html += `</tr></thead><tbody>`;
-
+    html+=`</tr></thead><tbody>`;
     for(let p=1;p<=10;p++){
-      html += `<tr><td>${p}</td>`;
+      html+=`<tr><td>${p}</td>`;
       for(let d=2;d<=7;d++){
-        const cell = timetable?.[d]?.[p] || {};
-        html += `<td>
+        const cell = timetable[d]?.[p]||{};
+        html+=`<td>
           <select class="subject-select" data-thu="${d}" data-tiet="${p}">
-            <option value="">--Môn--</option>`;
-        subjectsByKhoi.forEach(s => {
-          html += `<option value="${s.TenMonHoc}" ${cell.subject===s.TenMonHoc?'selected':''}>${s.TenMonHoc}</option>`;
-        });
-        html += `</select>
+            <option value="">--Môn--</option>
+            ${subjectsByClass.map(s=>`<option value="${s.TenMonHoc}" ${cell.subject===s.TenMonHoc?'selected':''}>${s.TenMonHoc}</option>`).join('')}
+          </select>
           <div class="teacher" id="teacher-${d}-${p}">${cell.teacher||''}</div>
         </td>`;
       }
-      html += `</tr>`;
+      html+=`</tr>`;
     }
-    html += `</tbody>`;
+    html+=`</tbody>`;
     document.getElementById('timetable-table').innerHTML = html;
 
-    // ✅ Khi chọn môn thì hiển thị tên giáo viên
-    document.querySelectorAll('.subject-select').forEach(sel => {
+    // Khi chọn môn => load giáo viên
+    document.querySelectorAll('.subject-select').forEach(sel=>{
       sel.addEventListener('change', async function(){
-        const TenMonHoc = this.value;
-        const Thu = Number(this.dataset.thu);
-        const TietHoc = Number(this.dataset.tiet);
-        const teacherDiv = document.getElementById(`teacher-${Thu}-${TietHoc}`);
+        const TenMonHoc=this.value, Thu=+this.dataset.thu, TietHoc=+this.dataset.tiet;
+        const teacherDiv=document.getElementById(`teacher-${Thu}-${TietHoc}`);
         if(!TenMonHoc){ teacherDiv.innerText=''; teacherDiv.classList.remove('missing'); return; }
 
-        try {
-          const res = await fetch('/api/thoikhoabieu/getTeacher', {
+        try{
+          const res = await fetch('/api/thoikhoabieu/getTeacher',{
             method:'POST',
             headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({ MaLop: formData.MaLop, TenMonHoc })
+            body: JSON.stringify({ MaLop: formData.MaLop, TenMonHoc, NamHoc: formData.NamHoc, KyHoc: formData.KyHoc })
           });
           const data = await res.json();
-          if(data?.TenGiaoVien){
-            teacherDiv.innerText = data.TenGiaoVien;
-            teacherDiv.classList.remove('missing');
-          } else {
-            teacherDiv.innerText = "Môn này chưa phân công bộ môn";
-            teacherDiv.classList.add('missing');
-          }
-        } catch(err){ 
-          teacherDiv.innerText = "Lỗi tải giáo viên";
-          teacherDiv.classList.add('missing');
-        }
+          if(data?.TenGiaoVien){ teacherDiv.innerText=data.TenGiaoVien; teacherDiv.classList.remove('missing'); }
+          else{ teacherDiv.innerText="Chưa phân công bộ môn"; teacherDiv.classList.add('missing'); }
+        }catch(err){ teacherDiv.innerText="Lỗi"; teacherDiv.classList.add('missing'); }
       });
     });
 
-  } catch(err){ console.error(err); alert('Lỗi tải TKB'); }
+  }catch(err){ console.error(err); alert('Lỗi tải TKB'); }
 }
 
-// ✅ Lưu TKB
-document.getElementById('save-timetable').addEventListener('click', async () => {
+// Lưu TKB
+document.getElementById('save-timetable').addEventListener('click', async ()=>{
   const form = document.getElementById('filter-form');
   const MaLop=form.MaLop.value, NamHoc=form.NamHoc.value, KyHoc=form.KyHoc.value, LoaiTKB=form.LoaiTKB.value;
   const timetableData=[];
   document.querySelectorAll('.subject-select').forEach(sel=>{
-    const Thu=Number(sel.dataset.thu), TietHoc=Number(sel.dataset.tiet);
-    const TenMonHoc=sel.value;
-    const teacher=document.getElementById(`teacher-${Thu}-${TietHoc}`).innerText;
-    if(TenMonHoc) timetableData.push({ MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc, TenMonHoc, teacher });
+    const Thu=+sel.dataset.thu, TietHoc=+sel.dataset.tiet, TenMonHoc=sel.value;
+    if(TenMonHoc) timetableData.push({ MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc, TenMonHoc });
   });
   try{
     const res=await fetch('/api/thoikhoabieu/saveAll',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ timetable: timetableData })
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ timetable: timetableData })
     });
     const result=await res.json();
     alert(result.message);
     loadTKB();
   }catch(err){ console.error(err); alert('Lỗi khi lưu TKB'); }
+});
+
+// Reset về TKB chuẩn
+document.getElementById('reset-week').addEventListener('click', async ()=>{
+  const form = document.getElementById('filter-form');
+  const MaLop=form.MaLop.value, NamHoc=form.NamHoc.value, KyHoc=form.KyHoc.value;
+  if(!MaLop){ alert('Chọn lớp'); return; }
+  try{
+    const res=await fetch('/api/thoikhoabieu/resetWeek',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ MaLop, NamHoc, KyHoc, LoaiTKB:'Chuan' })
+    });
+    const result=await res.json();
+    alert(result.message);
+    loadTKB();
+  }catch(err){ console.error(err); alert('Lỗi reset TKB'); }
 });
 </script>
 </body>
