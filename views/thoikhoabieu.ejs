@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Quản lý Thời Khóa Biểu</title>
+<style>
+body{font-family:Arial;margin:20px;} 
+h2{color:#2a9d8f;}
+.controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+label{font-size:14px;}
+table{border-collapse:collapse;width:100%;margin-bottom:10px;}
+th,td{border:1px solid #ccc;padding:6px;text-align:center;vertical-align:middle;}
+th{background:#f4a261;color:white;}
+select,input{width:100%;box-sizing:border-box;}
+.btn{padding:6px 12px;margin:5px;cursor:pointer;background:#2a9d8f;color:white;border:none;border-radius:4px;}
+.note{font-size:13px;color:#444;margin-bottom:12px;}
+.info{margin-top:8px;color:#085e5c;font-weight:600;}
+.teacher{display:block;margin-top:4px;font-size:12px;color:#333;}
+</style>
+</head>
+<body>
+<h2>Quản lý Thời Khóa Biểu</h2>
+
+<div class="controls">
+<form id="filter-form">
+<label>Lớp:
+<select name="MaLop" required>
+<% classes.forEach(cls=>{ %>
+<option value="<%= cls %>" <%= cls===selectedClass?'selected':'' %>><%= cls %></option>
+<% }) %>
+</select>
+</label>
+
+<label>Năm học:
+<select name="NamHoc" id="NamHoc">
+<% namHocList.forEach(nh=>{ %>
+<option value="<%= nh %>" <%= nh===selectedNamHoc?'selected':'' %>><%= nh %></option>
+<% }) %>
+</select>
+</label>
+
+<label>Học kỳ:
+<select name="KyHoc" id="KyHoc">
+<% kyHocList.forEach(ky => { %>
+<option value="<%= ky %>" <%= ky === selectedKyHoc ? 'selected':'' %>><%= ky %></option>
+<% }) %>
+</select>
+</label>
+
+<label>Tuần:
+<select name="LoaiTKB" id="LoaiTKB">
+<option value="Chuan" <%= selectedLoaiTKB==='Chuan'?'selected':'' %>>TKB chuẩn</option>
+<% for(let w=1; w<=20; w++){ %>
+<option value="Tuan<%= w %>" <%= selectedLoaiTKB==='Tuan'+w?'selected':'' %>>Tuần <%= w %></option>
+<% } %>
+</select>
+</label>
+
+<button class="btn" type="submit">Hiển thị</button>
+<button class="btn" type="button" id="reset-week">Reset về TKB chuẩn</button>
+</form>
+</div>
+
+<div class="note">Chú ý: Chọn "TKB chuẩn" hoặc tuần cụ thể để chỉnh sửa.</div>
+<div id="status" class="info"><%= statusMessage || 'Chưa có dữ liệu' %></div>
+
+<div id="timetable-container">
+<form id="timetable-form">
+<table id="timetable-table"></table>
+<button type="button" id="save-timetable">Lưu TKB</button>
+</form>
+</div>
+
+<!-- JS cuối file, chỉ sửa phần update học kỳ và load TKB -->
+<script>
+const FilterForm = document.getElementById('filter-form');
+const NamHocSelect = document.getElementById('NamHoc');
+const KyHocSelect = document.getElementById('KyHoc');
+const LoaiTKBSelect = document.getElementById('LoaiTKB');
+
+// Hàm load TKB
+async function loadTKB() {
+  const formData = Object.fromEntries(new FormData(FilterForm).entries());
+  if (!formData.MaLop || !formData.NamHoc) { alert('Vui lòng chọn lớp và năm học'); return; }
+
+  try {
+    const res = await fetch('/api/thoikhoabieu/getAll', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(formData)
+    });
+    const json = await res.json();
+    document.getElementById('status').innerText = json.statusMessage || '';
+    const { timetable = {}, subjects = [], selectedNamHocStart } = json;
+
+    let startDate = new Date(selectedNamHocStart);
+    let weekNumber = formData.LoaiTKB.startsWith('Tuan') ? parseInt(formData.LoaiTKB.replace('Tuan','')) : 1;
+    if (weekNumber > 1) startDate.setDate(startDate.getDate() + (weekNumber - 1) * 7);
+
+    let html = `<thead><tr><th>Tiết / Thứ</th>`;
+    for(let d=2; d<=7; d++){
+      const dayDate = new Date(startDate); dayDate.setDate(startDate.getDate() + (d-2));
+      html += `<th>Thứ ${d} (${dayDate.toLocaleDateString('vi-VN')})</th>`;
+    }
+    html += `</tr></thead><tbody>`;
+
+    for(let p=1;p<=10;p++){
+      html += `<tr><td>${p}</td>`;
+      for(let d=2;d<=7;d++){
+        const cell = timetable?.[d]?.[p] || {};
+        html += `<td>
+          <select class="subject-select" data-thu="${d}" data-tiet="${p}">
+            <option value="">--Môn--</option>`;
+        subjects.forEach(s => { html += `<option value="${s}" ${cell.subject===s?'selected':''}>${s}</option>` });
+        html += `</select>
+          <div class="teacher" id="teacher-${d}-${p}">${cell.teacher||''}</div>
+        </td>`;
+      }
+      html += `</tr>`;
+    }
+    html += `</tbody>`;
+    document.getElementById('timetable-table').innerHTML = html;
+
+    // Cập nhật giáo viên khi đổi môn
+    document.querySelectorAll('.subject-select').forEach(sel => {
+      sel.addEventListener('change', async function(){
+        const TenMonHoc = this.value;
+        const Thu = Number(this.dataset.thu);
+        const TietHoc = Number(this.dataset.tiet);
+        const teacherDiv = document.getElementById(`teacher-${Thu}-${TietHoc}`);
+        if(!TenMonHoc){ teacherDiv.innerText=''; return; }
+        const res = await fetch('/api/thoikhoabieu/getTeacher',{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ MaLop: formData.MaLop, TenMonHoc })
+        });
+        const data = await res.json();
+        teacherDiv.innerText = data.TenGiaoVien || '';
+      });
+    });
+
+  } catch(err){ console.error(err); alert('Lỗi tải TKB'); }
+}
+
+// Submit filter form
+FilterForm.addEventListener('submit', e => { e.preventDefault(); loadTKB(); });
+LoaiTKBSelect.addEventListener('change', loadTKB);
+
+// Khi đổi Năm học => cập nhật học kỳ
+NamHocSelect.addEventListener('change', async () => {
+  try {
+    const res = await fetch('/api/thoikhoabieu/getKyHocList', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ NamHoc: NamHocSelect.value })
+    });
+    const list = await res.json(); // [{KyHoc:'1'}, {KyHoc:'2'}, ...]
+
+    if(list.length > 0){
+      KyHocSelect.innerHTML = list.map(k => `<option value="${k.KyHoc}">${k.KyHoc}</option>`).join('');
+    } else {
+      KyHocSelect.innerHTML = `<option value="">--Chọn học kỳ--</option>`;
+    }
+
+    // Load lại TKB với học kỳ mới
+    loadTKB();
+  } catch(err) {
+    console.error(err);
+  }
+});
+
+// Lưu TKB
+document.getElementById('save-timetable').addEventListener('click', async () => {
+  const form = document.getElementById('filter-form');
+  const MaLop=form.MaLop.value, NamHoc=form.NamHoc.value, KyHoc=form.KyHoc.value, LoaiTKB=form.LoaiTKB.value;
+  const timetableData=[];
+  document.querySelectorAll('.subject-select').forEach(sel=>{
+    const Thu=Number(sel.dataset.thu), TietHoc=Number(sel.dataset.tiet);
+    const TenMonHoc=sel.value;
+    const teacher=document.getElementById(`teacher-${Thu}-${TietHoc}`).innerText;
+    if(TenMonHoc) timetableData.push({ MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc, TenMonHoc, teacher });
+  });
+  try{
+    const res=await fetch('/api/thoikhoabieu/saveAll',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ timetable: timetableData })
+    });
+    const result=await res.json();
+    alert(result.message);
+    loadTKB();
+  }catch(err){ console.error(err); alert('Lỗi khi lưu TKB'); }
+});
+
+// Reset tuần về TKB chuẩn
+document.getElementById('reset-week').addEventListener('click', async ()=>{
+  const form = document.getElementById('filter-form');
+  const MaLop=form.MaLop.value, NamHoc=form.NamHoc.value, KyHoc=form.KyHoc.value, Tuan=form.LoaiTKB.value;
+  if(Tuan==='Chuan'){ alert('Đang là TKB chuẩn'); return; }
+  if(!confirm('Xác nhận reset tuần này về TKB chuẩn?')) return;
+  try{
+    const res = await fetch('/api/thoikhoabieu/resetWeek',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ MaLop, NamHoc, KyHoc, LoaiTKB:Tuan })
+    });
+    const data = await res.json();
+    alert(data.message);
+    loadTKB();
+  }catch(err){ console.error(err); alert('Lỗi khi reset'); }
+});
+</script>
+
+</body>
+</html>

@@ -1,183 +1,118 @@
+// controllers/UserController.js
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const TaiKhoan = require('../models/.........điền vào sau ....').TaiKhoan;
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
+const generateToken = (username) => {
+  return jwt.sign({ username }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE || '1d',
   });
 };
 
-exports.register = async (req, res) => {
-  try {
-    const { username, email, password, fullName, role, phoneNumber } = req.body;
+class UserController {
+  // ====================
+  // Đăng ký tài khoản
+  // ====================
+  async register(req, res) {
+    try {
+      const { TenTaiKhoan, MatKhau, LoaiTaiKhoan } = req.body;
 
-    const user = await User.create({
-      username,
-      email,
-      password,
-      fullName,
-      role,
-      phoneNumber,
-    });
+      // Kiểm tra tồn tại
+      const existing = await TaiKhoan.getOne('TenTaiKhoan', TenTaiKhoan);
+      if (existing) return res.status(400).json({ success: false, message: 'Tên tài khoản đã tồn tại' });
 
-    const token = generateToken(user._id);
+      // Hash password
+      const hashedPassword = await bcrypt.hash(MatKhau, 10);
 
-    res.status(201).json({
-      success: true,
-      message: 'Đăng ký tài khoản thành công',
-      data: {
-        user: {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-        },
-        token,
-      },
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+      // Thêm mới
+      await TaiKhoan.insert({ TenTaiKhoan, MatKhau: hashedPassword, LoaiTaiKhoan });
 
-exports.login = async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Vui lòng nhập tên đăng nhập và mật khẩu',
+      const token = generateToken(TenTaiKhoan);
+      res.status(201).json({
+        success: true,
+        message: 'Đăng ký tài khoản thành công',
+        data: { TenTaiKhoan, LoaiTaiKhoan, token },
       });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
     }
+  }
 
-    const user = await User.findOne({ username }).select('+password').populate('school');
+  // ====================
+  // Đăng nhập
+  // ====================
+  async login(req, res) {
+    try {
+      const { TenTaiKhoan, MatKhau } = req.body;
+      if (!TenTaiKhoan || !MatKhau) {
+        return res.status(400).json({ success: false, message: 'Vui lòng nhập tài khoản và mật khẩu' });
+      }
 
-    if (!user || !(await user.matchPassword(password))) {
-      return res.status(401).json({
-        success: false,
-        message: 'Tên đăng nhập hoặc mật khẩu không chính xác',
-      });
+      const user = await TaiKhoan.getOne('TenTaiKhoan', TenTaiKhoan);
+      if (!user) return res.status(401).json({ success: false, message: 'Sai tài khoản hoặc mật khẩu' });
+
+      const match = await bcrypt.compare(MatKhau, user.MatKhau);
+      if (!match) return res.status(401).json({ success: false, message: 'Sai tài khoản hoặc mật khẩu' });
+
+      const token = generateToken(TenTaiKhoan);
+      req.session.token = token;
+      req.session.username = TenTaiKhoan;
+
+      res.json({ success: true, message: 'Đăng nhập thành công', data: { TenTaiKhoan, LoaiTaiKhoan: user.LoaiTaiKhoan, token } });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
     }
+  }
 
-    if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: 'Tài khoản đã bị vô hiệu hóa',
-      });
+  // ====================
+  // Đăng xuất
+  // ====================
+  logout(req, res) {
+    req.session.destroy();
+    res.json({ success: true, message: 'Đăng xuất thành công' });
+  }
+
+  // ====================
+  // Lấy thông tin người dùng hiện tại
+  // ====================
+  async getMe(req, res) {
+    try {
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
+      }
+      const user = await TaiKhoan.getOne('TenTaiKhoan', req.session.username);
+      if (!user) return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+
+      res.json({ success: true, data: { TenTaiKhoan: user.TenTaiKhoan, LoaiTaiKhoan: user.LoaiTaiKhoan } });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
     }
-
-    user.lastLogin = Date.now();
-    await user.save();
-
-    const token = generateToken(user._id);
-    req.session.token = token;
-    req.session.userId = user._id;
-
-    res.json({
-      success: true,
-      message: 'Đăng nhập thành công',
-      data: {
-        user: {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-          school: user.school,
-        },
-        token,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
   }
-};
 
-exports.logout = (req, res) => {
-  req.session.destroy();
-  res.json({
-    success: true,
-    message: 'Đăng xuất thành công',
-  });
-};
+  // ====================
+  // Đổi mật khẩu
+  // ====================
+  async changePassword(req, res) {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
+      }
 
-exports.getMe = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id)
-      .populate('school')
-      .populate('relatedProfile');
+      const user = await TaiKhoan.getOne('TenTaiKhoan', req.session.username);
+      if (!user) return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
 
-    res.json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+      const match = await bcrypt.compare(currentPassword, user.MatKhau);
+      if (!match) return res.status(401).json({ success: false, message: 'Mật khẩu hiện tại không chính xác' });
 
-exports.updateProfile = async (req, res) => {
-  try {
-    const fieldsToUpdate = {
-      fullName: req.body.fullName,
-      email: req.body.email,
-      phoneNumber: req.body.phoneNumber,
-      address: req.body.address,
-    };
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await TaiKhoan.update('TenTaiKhoan', req.session.username, { MatKhau: hashedPassword });
 
-    const user = await User.findByIdAndUpdate(req.user._id, fieldsToUpdate, {
-      new: true,
-      runValidators: true,
-    });
-
-    res.json({
-      success: true,
-      message: 'Cập nhật thông tin thành công',
-      data: user,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-exports.changePassword = async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-
-    const user = await User.findById(req.user._id).select('+password');
-
-    if (!(await user.matchPassword(currentPassword))) {
-      return res.status(401).json({
-        success: false,
-        message: 'Mật khẩu hiện tại không chính xác',
-      });
+      res.json({ success: true, message: 'Đổi mật khẩu thành công' });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
     }
-
-    user.password = newPassword;
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Đổi mật khẩu thành công',
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
   }
-};
+}
+
+module.exports = new UserController();

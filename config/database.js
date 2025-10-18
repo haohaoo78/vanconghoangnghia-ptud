@@ -1,17 +1,14 @@
-const mongoose = require('mongoose');
+const mysql = require('mysql2/promise');
 
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+const db = mysql.createPool({
+  host: process.env.MYSQL_HOST || 'localhost',
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || 'Shatou5114',
+  database: process.env.MYSQL_DATABASE || 'ptud',
+  port: process.env.MYSQL_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
-    console.log(`MongoDB đã kết nối: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`Lỗi kết nối MongoDB: ${error.message}`);
-    process.exit(1);
-  }
-};
-
-module.exports = connectDB;
+module.exports = db;
