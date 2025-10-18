@@ -1,142 +1,166 @@
+// controllers/ThoiKhoaBieuController.js
 const ThoiKhoaBieu = require('../models/ThoiKhoaBieu');
 
 class ThoiKhoaBieuController {
-
-  // Render giao diện
+  // === Render trang chính ===
   async renderPage(req, res) {
     try {
-      const classes = await ThoiKhoaBieu.getClasses();
-      const subjects = await ThoiKhoaBieu.getSubjects();
-      const classSubjectTeacher = await ThoiKhoaBieu.getClassSubjectTeacher();
+      const khoiList = await ThoiKhoaBieu.getKhoiList();
+      const firstKhoi = khoiList[0]?.MaKhoi || '';
+      const classes = await ThoiKhoaBieu.getClassesByKhoi(firstKhoi);
+      const firstClass = classes[0]?.MaLop || '';
+
       const namHocList = await ThoiKhoaBieu.getNamHocList();
       const selectedNamHoc = namHocList[0] || '';
-
-      // Lấy học kỳ theo năm học
       const kyHocListObj = await ThoiKhoaBieu.getKyHocList(selectedNamHoc);
       const kyHocList = kyHocListObj.map(k => k.KyHoc);
       const selectedKyHoc = kyHocList[0] || '';
       const selectedNamHocStart = kyHocListObj[0]?.NgayBatDau || '2025-08-01';
 
       res.render('Thoikhoabieu', {
+        khoiList,
         classes,
-        subjects,
-        classSubjectTeacher,
+        subjects: [],
+        classSubjectTeacher: [],
         namHocList,
         kyHocList,
         timetable: {},
-        selectedClass: '',
+        selectedKhoi: firstKhoi,
+        selectedClass: firstClass,
         selectedNamHoc,
         selectedKyHoc,
         selectedLoaiTKB: 'Chuan',
         selectedNamHocStart,
         statusMessage: ''
       });
-    } catch(err) {
+    } catch (err) {
       console.error(err);
-      res.status(500).send('Lỗi server');
+      res.status(500).send('Lỗi server khi render trang');
     }
   }
 
-  // API trả học kỳ theo năm học
-  async getKyHocList(req,res) {
+  // === API: Lấy lớp theo khối ===
+  async getLopTheoKhoi(req, res) {
+    try {
+      const { MaKhoi } = req.body;
+      if (!MaKhoi) return res.json([]);
+
+      const [rows] = await ThoiKhoaBieu.db.execute(
+        'SELECT MaLop, TenLop FROM Lop WHERE Khoi = ? ORDER BY TenLop',
+        [MaKhoi]
+      );
+
+      res.json(rows);
+    } catch (err) {
+      console.error('Lỗi lấy lớp theo khối:', err);
+      res.status(500).json({ error: 'Lỗi truy vấn lớp theo khối' });
+    }
+  }
+
+  // === API: Lấy học kỳ theo năm học ===
+  async getKyHocList(req, res) {
     try {
       const { NamHoc } = req.body;
       const list = await ThoiKhoaBieu.getKyHocList(NamHoc);
       res.json(list);
-    } catch(err) {
+    } catch (err) {
       console.error(err);
-      res.status(500).json({ error: 'Lỗi server' });
+      res.status(500).json({ error: 'Lỗi khi lấy học kỳ' });
     }
   }
 
-  // API load TKB theo lớp, năm học, học kỳ, loại TKB
-  async getAll(req,res) {
+  // === API: Lấy môn + giáo viên theo lớp ===
+  async getSubjectsByClass(req, res) {
+    try {
+      const { MaLop } = req.body;
+      if (!MaLop) return res.json([]);
+
+      const subjects = await ThoiKhoaBieu.getSubjectsByClass(MaLop);
+
+      // Nếu chưa có giáo viên, gán mặc định thông báo
+      const subjectsWithTeacher = subjects.map(s => ({
+        TenMonHoc: s.TenMonHoc,
+        TenGiaoVien: s.TenGiaoVien || 'Môn này chưa phân công bộ môn'
+      }));
+
+      res.json(subjectsWithTeacher);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Lỗi khi lấy môn theo lớp' });
+    }
+  }
+
+  // === API: Lấy giáo viên dạy môn cho lớp ===
+  async getTeacher(req, res) {
+    try {
+      const { MaLop, TenMonHoc } = req.body;
+      const gv = await ThoiKhoaBieu.getTeacher(MaLop, TenMonHoc);
+      res.json(gv);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Lỗi khi lấy giáo viên' });
+    }
+  }
+
+  // === API: Load TKB (khi bấm nút Hiển thị) ===
+  async getAll(req, res) {
     try {
       let { MaLop, NamHoc, KyHoc, LoaiTKB } = req.body;
-      if (!MaLop || !NamHoc) return res.status(400).json({ error:'Vui lòng chọn lớp và năm học' });
+      if (!MaLop || !NamHoc)
+        return res.status(400).json({ error: 'Thiếu lớp hoặc năm học' });
 
       LoaiTKB = LoaiTKB || 'Chuan';
-
-      // Lấy học kỳ hợp lệ của năm học
       const kyHocListObj = await ThoiKhoaBieu.getKyHocList(NamHoc);
       const kyHocList = kyHocListObj.map(k => k.KyHoc);
-      if(!KyHoc || !kyHocList.includes(KyHoc)) KyHoc = kyHocList[0] || '';
-      const selectedNamHocStart = kyHocListObj.find(k => k.KyHoc===KyHoc)?.NgayBatDau || '2025-08-01';
+      if (!KyHoc || !kyHocList.includes(KyHoc)) KyHoc = kyHocList[0] || '';
+      const selectedNamHocStart =
+        kyHocListObj.find(k => k.KyHoc === KyHoc)?.NgayBatDau || '2025-08-01';
 
-      // Lấy TKB
-      let timetable = await ThoiKhoaBieu.getGrid(MaLop, LoaiTKB, NamHoc, KyHoc);
-      if(LoaiTKB !== 'Chuan' && Object.keys(timetable).length === 0) {
-        // Nếu tuần không có dữ liệu, lấy TKB chuẩn
-        timetable = await ThoiKhoaBieu.getGrid(MaLop, 'Chuan', NamHoc, KyHoc);
-      }
+      // ✅ Lấy danh sách môn theo lớp
+      const subjectsRaw = await ThoiKhoaBieu.getSubjectsByClass(MaLop);
+      const subjects = subjectsRaw.map(s => ({
+        TenMonHoc: s.TenMonHoc,
+        TenGiaoVien: s.TenGiaoVien || 'Môn này chưa phân công bộ môn'
+      }));
 
-      const subjects = await ThoiKhoaBieu.getSubjects();
-      const classSubjectTeacher = await ThoiKhoaBieu.getClassSubjectTeacher();
+      // ✅ Lấy thời khóa biểu
+      const timetable = await ThoiKhoaBieu.getGrid(MaLop, LoaiTKB, NamHoc, KyHoc);
 
-      res.json({ timetable, subjects, classSubjectTeacher, selectedNamHocStart, statusMessage:'Đã tải dữ liệu' });
-
-    } catch(err) {
+      res.json({
+        timetable,
+        subjects,
+        selectedNamHocStart,
+        statusMessage: 'Đã tải dữ liệu'
+      });
+    } catch (err) {
       console.error(err);
-      res.status(500).json({ error: 'Lỗi server' });
+      res.status(500).json({ error: 'Lỗi khi tải TKB' });
     }
   }
 
-  // API lấy giáo viên theo lớp + môn
-async getTeacher(req,res) {
-  try {
-    const { MaLop, TenMonHoc } = req.body;
-    const [rows] = await ThoiKhoaBieu.db.execute(`
-      SELECT g.TenGiaoVien 
-      FROM GVBoMon gbm
-      JOIN GiaoVien g ON gbm.MaGVBM = g.MaGiaoVien
-      WHERE gbm.MaLop = ? AND g.TenMonHoc = ?
-      LIMIT 1
-    `, [MaLop, TenMonHoc]);
-    res.json({ TenGiaoVien: rows[0]?.TenGiaoVien || '' });
-  } catch(err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi server khi lấy giáo viên' });
+  // === API: Lưu TKB ===
+  async saveAll(req, res) {
+    try {
+      const { timetable } = req.body;
+      await ThoiKhoaBieu.updateMultiple(timetable);
+      res.json({ message: 'Lưu thời khóa biểu thành công!' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Lỗi khi lưu TKB' });
+    }
   }
-}
 
-  // API lưu nhiều ô TKB cùng lúc
-async saveAll(req,res) {
-  try {
-    const { timetable } = req.body;
-    console.log('Dữ liệu nhận:', timetable); // thêm dòng này
-    await ThoiKhoaBieu.updateMultiple(timetable);
-    res.json({ message: 'Lưu thời khóa biểu thành công!' });
-  } catch(err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi server khi lưu TKB' });
-  }
-}
-  // API reset tuần về TKB chuẩn
-  async resetWeek(req,res) {
+  // === API: Reset tuần ===
+  async resetWeek(req, res) {
     try {
       const { MaLop, NamHoc, KyHoc, LoaiTKB } = req.body;
-      if(!MaLop || !NamHoc || !KyHoc || !LoaiTKB) return res.status(400).json({ error:'Thiếu tham số' });
-
       await ThoiKhoaBieu.resetWeek(MaLop, NamHoc, KyHoc, LoaiTKB);
-      res.json({ message:`Đã reset ${LoaiTKB} về TKB chuẩn` });
-    } catch(err) {
+      res.json({ message: `Đã reset ${LoaiTKB} về TKB chuẩn` });
+    } catch (err) {
       console.error(err);
-      res.status(500).json({ error:'Lỗi server khi reset tuần' });
+      res.status(500).json({ error: 'Lỗi khi reset tuần' });
     }
   }
-  async getSubjectsByClass(req, res) {
-  try {
-    const { MaLop } = req.body;
-    const khoi = await ThoiKhoaBieu.getKhoiByClass(MaLop);
-    if (!khoi) return res.json([]);
-    const subjects = await ThoiKhoaBieu.getSubjectsByKhoi(khoi);
-    res.json(subjects);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi server khi lấy danh sách môn' });
-  }
 }
-}
-
 
 module.exports = new ThoiKhoaBieuController();

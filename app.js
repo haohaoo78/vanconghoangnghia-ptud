@@ -5,9 +5,9 @@ const path = require('path');
 require('dotenv').config();
 
 // =====================
-// Khởi tạo DB
+// Kết nối Database
 // =====================
-global.db = require('./config/database'); // db là pool, dùng trực tiếp trong model
+global.db = require('./config/database');
 
 // =====================
 // Khởi tạo Express
@@ -19,25 +19,16 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 // =====================
-// Router Thời Khóa Biểu
+// Import Router
 // =====================
-const ThoiKhoaBieuController = require('./controllers/ThoiKhoaBieuController');
-const tkbRouter = express.Router();
+const thoiKhoaBieuRouter = require('./routes/ThoiKhoaBieuRoutes');
 
-// Render giao diện lập TKB
-tkbRouter.get('/render', (req, res) => ThoiKhoaBieuController.renderPage(req, res));
-// Lấy TKB theo lớp và tuần
-tkbRouter.post('/getAll', (req, res) => ThoiKhoaBieuController.getAll(req, res));
-// Thêm mới TKB
-tkbRouter.post('/create', (req, res) => ThoiKhoaBieuController.create(req, res));
-// Cập nhật TKB
-tkbRouter.post('/update', (req, res) => ThoiKhoaBieuController.update(req, res));
-// Xóa TKB tuần
-tkbRouter.post('/resetWeek', (req, res) => ThoiKhoaBieuController.resetWeek(req, res));
+// Dẫn route Thời Khóa Biểu
+app.use('/api/thoikhoabieu', thoiKhoaBieuRouter);
 
-app.use('/api/thoikhoabieu', tkbRouter);
-
-// Trang mặc định redirect sang render
+// =====================
+// Trang mặc định
+// =====================
 app.get('/', (req, res) => res.redirect('/api/thoikhoabieu/render'));
 
 // =====================
@@ -45,5 +36,5 @@ app.get('/', (req, res) => res.redirect('/api/thoikhoabieu/render'));
 // =====================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server chạy tại http://localhost:${PORT}`);
+  console.log(`✅ Server chạy tại: http://localhost:${PORT}`);
 });
