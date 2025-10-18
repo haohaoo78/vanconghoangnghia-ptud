@@ -109,17 +109,19 @@ class ThoiKhoaBieuController {
     }
   }
 
-  async saveAll(req, res) {
-    try {
-      const { timetable } = req.body;
-      await ThoiKhoaBieu.updateMultiple(timetable);
-      res.json({ message: 'Lưu thời khóa biểu thành công!' });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Lỗi khi lưu TKB' });
-    }
-  }
+async saveAll(req, res) {
+  try {
+    const { timetable, selectedNamHocStart } = req.body; 
+    if (!selectedNamHocStart) 
+      return res.status(400).json({ error: 'Thiếu ngày bắt đầu học kỳ' });
 
+    await ThoiKhoaBieu.updateMultiple(timetable, selectedNamHocStart);
+    res.json({ message: 'Lưu thời khóa biểu thành công!' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi khi lưu TKB' });
+  }
+}
 async resetWeek(req, res) {
   try {
     const { MaLop, NamHoc, KyHoc, LoaiTKB } = req.body;

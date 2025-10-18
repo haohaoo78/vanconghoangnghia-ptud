@@ -86,36 +86,49 @@ static async getGrid(MaLop, LoaiTKB, NamHoc, KyHoc) {
 }
 
 
-// Lưu TKB đúng cell
-static async updateMultiple(cells) {
+static async updateMultiple(cells, startDate) {
   for (const cell of cells) {
     const { MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc } = cell;
 
-    // Lấy MaGiaoVien từ GVBoMon cho lớp và môn
+    // Xác định Ngày
+    let Ngay = null;
+    const baseDate = new Date(startDate);
+    let thuNumber = Thu === 'CN' ? 7 : parseInt(Thu); // CN = 7
+    let weekOffset = 0;
+    if (LoaiTKB.startsWith('Tuan')) {
+      weekOffset = (parseInt(LoaiTKB.replace('Tuan', '')) - 1) * 7;
+    }
+    const offset = (thuNumber - 2) + weekOffset; // Thứ 2 = ngày 0
+    const ngayObj = new Date(baseDate);
+    ngayObj.setDate(baseDate.getDate() + offset);
+    Ngay = ngayObj.toISOString().slice(0, 10); // yyyy-mm-dd
+
+    // Lấy MaGiaoVien
     const [gvRows] = await db.execute(`
-      SELECT g.MaGiaoVien 
-      FROM GVBoMon gbm 
+      SELECT g.MaGiaoVien
+      FROM GVBoMon gbm
       JOIN GiaoVien g ON gbm.MaGVBM = g.MaGiaoVien
-      WHERE gbm.MaLop = ? AND g.TenMonHoc = ?
+      WHERE gbm.MaLop=? AND g.TenMonHoc=?
       LIMIT 1
     `, [MaLop, TenMonHoc]);
-
-    const MaGiaoVien = gvRows[0]?.MaGiaoVien || null;
+    const MaGiaoVien = gvRows[0]?.MaGiaoVien;
     if (!MaGiaoVien) continue;
 
-    // DELETE chỉ xóa đúng cell của tuần / tiết / thứ
+    // DELETE cell cũ (khóa chính: MaLop, LoaiTKB, Thu, TietHoc, TenMonHoc, Ngay)
     await db.execute(`
-      DELETE FROM ThoiKhoaBieu 
-      WHERE MaLop=? AND LoaiTKB=? AND NamHoc=? AND KyHoc=? AND Thu=? AND TietHoc=?
-    `, [MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc]);
+      DELETE FROM ThoiKhoaBieu
+      WHERE MaLop=? AND LoaiTKB=? AND Thu=? AND TietHoc=? AND TenMonHoc=? AND Ngay=?
+    `, [MaLop, LoaiTKB, Thu, TietHoc, TenMonHoc, Ngay]);
 
     // INSERT cell mới
     await db.execute(`
-      INSERT INTO ThoiKhoaBieu (MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc, MaGiaoVien)
-      VALUES (?,?,?,?,?,?,?,?)
-    `, [MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc, MaGiaoVien]);
+      INSERT INTO ThoiKhoaBieu 
+        (LoaiTKB, MaLop, TenMonHoc, TietHoc, KyHoc, Thu, Ngay, MaGiaoVien, NamHoc)
+      VALUES (?,?,?,?,?,?,?,?,?)
+    `, [LoaiTKB, MaLop, TenMonHoc, TietHoc, KyHoc, Thu, Ngay, MaGiaoVien, NamHoc]);
   }
 }
+
 
 // Reset tuần cụ thể
 static async resetWeek(MaLop, NamHoc, KyHoc, LoaiTKB) {

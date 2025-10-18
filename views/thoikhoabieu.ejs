@@ -67,6 +67,9 @@ select,input{width:100%;box-sizing:border-box;}
     </select>
   </label>
 
+  <!-- Hidden input chứa ngày bắt đầu học kỳ -->
+  <input type="hidden" id="NamHocStart" name="NamHocStart" value="<%= selectedNamHocStart %>">
+
   <button class="btn" type="submit">Hiển thị</button>
   <button class="btn" type="button" id="reset-week">Reset về TKB chuẩn</button>
 </form>
@@ -89,10 +92,11 @@ const LopSelect = document.getElementById('MaLop');
 const NamHocSelect = document.getElementById('NamHoc');
 const KyHocSelect = document.getElementById('KyHoc');
 const LoaiTKBSelect = document.getElementById('LoaiTKB');
+const NamHocStartInput = document.getElementById('NamHocStart');
 
 let subjectsByClass = [];
 
-// Khi chọn khối => load lớp
+// Load lớp khi chọn khối
 KhoiSelect.addEventListener('change', async () => {
   const MaKhoi = KhoiSelect.value;
   LopSelect.innerHTML = `<option value="">--Chọn lớp--</option>`;
@@ -112,7 +116,7 @@ KhoiSelect.addEventListener('change', async () => {
   }catch(err){ console.error(err); }
 });
 
-// Khi đổi Năm học => load lại học kỳ
+// Load học kỳ khi đổi năm học
 NamHocSelect.addEventListener('change', async ()=>{
   try{
     const res = await fetch('/api/thoikhoabieu/getKyHocList', {
@@ -127,7 +131,7 @@ NamHocSelect.addEventListener('change', async ()=>{
   }catch(err){ console.error(err); }
 });
 
-// Khi bấm Hiển thị
+// Hiển thị TKB
 FilterForm.addEventListener('submit', e=>{
   e.preventDefault();
   loadTKB();
@@ -147,9 +151,10 @@ async function loadTKB(){
     document.getElementById('status').innerText = json.statusMessage||'';
     subjectsByClass = json.subjects||[];
     const timetable = json.timetable||{};
-    const startDate = new Date(json.selectedNamHocStart||'2025-08-01');
+    NamHocStartInput.value = json.selectedNamHocStart || '2025-08-01';
+    const startDate = new Date(NamHocStartInput.value);
 
-    // Xây table
+    // Build table
     let html=`<thead><tr><th>Tiết / Thứ</th>`;
     for(let d=2;d<=7;d++){
       const dayDate = new Date(startDate); dayDate.setDate(startDate.getDate()+(d-2));
@@ -173,7 +178,7 @@ async function loadTKB(){
     html+=`</tbody>`;
     document.getElementById('timetable-table').innerHTML = html;
 
-    // Khi chọn môn => load giáo viên
+    // Load giáo viên khi chọn môn
     document.querySelectorAll('.subject-select').forEach(sel=>{
       sel.addEventListener('change', async function(){
         const TenMonHoc=this.value, Thu=+this.dataset.thu, TietHoc=+this.dataset.tiet;
@@ -197,24 +202,38 @@ async function loadTKB(){
 }
 
 // Lưu TKB
-document.getElementById('save-timetable').addEventListener('click', async ()=>{
+document.getElementById('save-timetable').addEventListener('click', async () => {
   const form = document.getElementById('filter-form');
-  const MaLop=form.MaLop.value, NamHoc=form.NamHoc.value, KyHoc=form.KyHoc.value, LoaiTKB=form.LoaiTKB.value;
-  const timetableData=[];
-  document.querySelectorAll('.subject-select').forEach(sel=>{
-    const Thu=+sel.dataset.thu, TietHoc=+sel.dataset.tiet, TenMonHoc=sel.value;
-    if(TenMonHoc) timetableData.push({ MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc, TenMonHoc });
+  const MaLop = form.MaLop.value;
+  const NamHoc = form.NamHoc.value;
+  const KyHoc = form.KyHoc.value;
+  const LoaiTKB = form.LoaiTKB.value;
+  const selectedNamHocStart = form.NamHocStart.value;
+
+  const timetableData = [];
+  document.querySelectorAll('.subject-select').forEach(sel => {
+    const Thu = +sel.dataset.thu;
+    const TietHoc = +sel.dataset.tiet;
+    const TenMonHoc = sel.value;
+
+    if(TenMonHoc){
+      timetableData.push({ MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc, TenMonHoc });
+    }
   });
-  try{
-    const res=await fetch('/api/thoikhoabieu/saveAll',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ timetable: timetableData })
+
+  try {
+    const res = await fetch('/api/thoikhoabieu/saveAll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timetable: timetableData, selectedNamHocStart })
     });
-    const result=await res.json();
+    const result = await res.json();
     alert(result.message);
-    loadTKB();
-  }catch(err){ console.error(err); alert('Lỗi khi lưu TKB'); }
+    loadTKB(); // reload table
+  } catch(err) {
+    console.error(err);
+    alert('Lỗi khi lưu TKB');
+  }
 });
 
 // Reset tuần về TKB chuẩn
@@ -236,7 +255,6 @@ document.getElementById('reset-week').addEventListener('click', async ()=>{
     loadTKB();
   }catch(err){ console.error(err); alert('Lỗi khi reset tuần'); }
 });
-
 </script>
 </body>
 </html>
