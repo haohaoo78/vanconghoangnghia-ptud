@@ -67,17 +67,32 @@ class ThoiKhoaBieu {
     }
 
 
-  static async updateMultiple(cells) {
-    for(const cell of cells){
-      await db.execute('DELETE FROM ThoiKhoaBieu WHERE MaLop=? AND LoaiTKB=? AND NamHoc=? AND KyHoc=? AND Thu=? AND TietHoc=?',
-        [cell.MaLop, cell.LoaiTKB, cell.NamHoc, cell.KyHoc, cell.Thu, cell.TietHoc]);
-      await db.execute(`
-        INSERT INTO ThoiKhoaBieu
-        (MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc, MaGiaoVien)
-        VALUES (?,?,?,?,?,?,?,?)
-      `, [cell.MaLop, cell.LoaiTKB, cell.NamHoc, cell.KyHoc, cell.Thu, cell.TietHoc, cell.TenMonHoc, cell.teacher]);
-    }
+static async updateMultiple(cells) {
+  for (const cell of cells) {
+    // Lấy đúng giáo viên của lớp đó & môn đó
+    const [gvRows] = await db.execute(`
+      SELECT g.MaGiaoVien 
+      FROM GVBoMon gbm 
+      JOIN GiaoVien g ON gbm.MaGVBM = g.MaGiaoVien
+      WHERE gbm.MaLop = ? AND g.TenMonHoc = ?
+    `, [cell.MaLop, cell.TenMonHoc]);
+
+    const MaGiaoVien = gvRows[0]?.MaGiaoVien || null;
+
+    if (!MaGiaoVien) continue; // bỏ qua nếu không tìm thấy GV phù hợp
+
+    await db.execute(`
+      DELETE FROM ThoiKhoaBieu 
+      WHERE MaLop=? AND LoaiTKB=? AND NamHoc=? AND KyHoc=? AND Thu=? AND TietHoc=?
+    `, [cell.MaLop, cell.LoaiTKB, cell.NamHoc, cell.KyHoc, cell.Thu, cell.TietHoc]);
+
+    await db.execute(`
+      INSERT INTO ThoiKhoaBieu
+      (MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc, MaGiaoVien)
+      VALUES (?,?,?,?,?,?,?,?)
+    `, [cell.MaLop, cell.LoaiTKB, cell.NamHoc, cell.KyHoc, cell.Thu, cell.TietHoc, cell.TenMonHoc, MaGiaoVien]);
   }
+}
 
   static async resetWeek(MaLop, NamHoc, KyHoc, Tuan) {
     await db.execute('DELETE FROM ThoiKhoaBieu WHERE MaLop=? AND LoaiTKB=? AND NamHoc=? AND KyHoc=?', [MaLop, Tuan, NamHoc, KyHoc]);
@@ -87,7 +102,19 @@ class ThoiKhoaBieu {
     const [rows] = await db.execute('SELECT NgayBatDau FROM HocKy WHERE NamHoc=? AND KyHoc=?', [NamHoc, KyHoc]);
     return rows[0]?.NgayBatDau || null;
   }
+  // Lấy khối của lớp
+static async getKhoiByClass(MaLop) {
+  const [rows] = await db.execute('SELECT Khoi FROM Lop WHERE MaLop = ?', [MaLop]);
+  return rows[0]?.Khoi || null;
+}
+
+// Lấy môn theo khối
+static async getSubjectsByKhoi(Khoi) {
+  const [rows] = await db.execute('SELECT TenMonHoc FROM MonHoc WHERE Khoi = ? ORDER BY TenMonHoc', [Khoi]);
+  return rows.map(r => r.TenMonHoc);
+}
 
 }
+
 
 module.exports = ThoiKhoaBieu;

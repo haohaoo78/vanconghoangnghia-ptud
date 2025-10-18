@@ -82,29 +82,35 @@ class ThoiKhoaBieuController {
   }
 
   // API lấy giáo viên theo lớp + môn
-  async getTeacher(req,res) {
-    try {
-      const { MaLop, TenMonHoc } = req.body;
-      const classSubjectTeacher = await ThoiKhoaBieu.getClassSubjectTeacher();
-      res.json({ TenGiaoVien: classSubjectTeacher[MaLop]?.[TenMonHoc] || '' });
-    } catch(err) {
-      console.error(err);
-      res.status(500).json({ error: 'Lỗi server' });
-    }
+async getTeacher(req,res) {
+  try {
+    const { MaLop, TenMonHoc } = req.body;
+    const [rows] = await ThoiKhoaBieu.db.execute(`
+      SELECT g.TenGiaoVien 
+      FROM GVBoMon gbm
+      JOIN GiaoVien g ON gbm.MaGVBM = g.MaGiaoVien
+      WHERE gbm.MaLop = ? AND g.TenMonHoc = ?
+      LIMIT 1
+    `, [MaLop, TenMonHoc]);
+    res.json({ TenGiaoVien: rows[0]?.TenGiaoVien || '' });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi server khi lấy giáo viên' });
   }
+}
 
   // API lưu nhiều ô TKB cùng lúc
-  async saveAll(req,res) {
-    try {
-      const { timetable } = req.body;
-      await ThoiKhoaBieu.updateMultiple(timetable);
-      res.json({ message: 'Lưu thời khóa biểu thành công!' });
-    } catch(err) {
-      console.error(err);
-      res.status(500).json({ error: 'Lỗi server khi lưu TKB' });
-    }
+async saveAll(req,res) {
+  try {
+    const { timetable } = req.body;
+    console.log('Dữ liệu nhận:', timetable); // thêm dòng này
+    await ThoiKhoaBieu.updateMultiple(timetable);
+    res.json({ message: 'Lưu thời khóa biểu thành công!' });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi server khi lưu TKB' });
   }
-
+}
   // API reset tuần về TKB chuẩn
   async resetWeek(req,res) {
     try {
@@ -118,6 +124,19 @@ class ThoiKhoaBieuController {
       res.status(500).json({ error:'Lỗi server khi reset tuần' });
     }
   }
+  async getSubjectsByClass(req, res) {
+  try {
+    const { MaLop } = req.body;
+    const khoi = await ThoiKhoaBieu.getKhoiByClass(MaLop);
+    if (!khoi) return res.json([]);
+    const subjects = await ThoiKhoaBieu.getSubjectsByKhoi(khoi);
+    res.json(subjects);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi server khi lấy danh sách môn' });
+  }
 }
+}
+
 
 module.exports = new ThoiKhoaBieuController();
