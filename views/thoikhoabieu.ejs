@@ -217,22 +217,26 @@ document.getElementById('save-timetable').addEventListener('click', async ()=>{
   }catch(err){ console.error(err); alert('Lỗi khi lưu TKB'); }
 });
 
-// Reset về TKB chuẩn
+// Reset tuần về TKB chuẩn
 document.getElementById('reset-week').addEventListener('click', async ()=>{
-  const form = document.getElementById('filter-form');
-  const MaLop=form.MaLop.value, NamHoc=form.NamHoc.value, KyHoc=form.KyHoc.value;
-  if(!MaLop){ alert('Chọn lớp'); return; }
+  const form=FilterForm;
+  const MaLop=form.MaLop.value, NamHoc=form.NamHoc.value, KyHoc=form.KyHoc.value, LoaiTKB=form.LoaiTKB.value;
+  if(LoaiTKB==='Chuan'){ alert('Không thể reset TKB chuẩn'); return; }
+
+  if(!confirm(`Bạn có muốn reset ${LoaiTKB} về TKB chuẩn không?`)) return;
+
   try{
-    const res=await fetch('/api/thoikhoabieu/resetWeek',{
+    const res = await fetch('/api/thoikhoabieu/resetWeek',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ MaLop, NamHoc, KyHoc, LoaiTKB:'Chuan' })
+      body:JSON.stringify({ MaLop, NamHoc, KyHoc, LoaiTKB })
     });
-    const result=await res.json();
-    alert(result.message);
+    const data = await res.json();
+    alert(data.message);
     loadTKB();
-  }catch(err){ console.error(err); alert('Lỗi reset TKB'); }
+  }catch(err){ console.error(err); alert('Lỗi khi reset tuần'); }
 });
+
 </script>
 </body>
 </html>

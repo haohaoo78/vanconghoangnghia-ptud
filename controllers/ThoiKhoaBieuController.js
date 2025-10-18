@@ -120,16 +120,17 @@ class ThoiKhoaBieuController {
     }
   }
 
-  async resetWeek(req, res) {
-    try {
-      const { MaLop, NamHoc, KyHoc, LoaiTKB } = req.body;
-      await ThoiKhoaBieu.resetWeek(MaLop, NamHoc, KyHoc, LoaiTKB);
-      res.json({ message: `Đã reset ${LoaiTKB} về TKB chuẩn` });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Lỗi khi reset tuần' });
-    }
+async resetWeek(req, res) {
+  try {
+    const { MaLop, NamHoc, KyHoc, LoaiTKB } = req.body;
+    if(!LoaiTKB || LoaiTKB==='Chuan') return res.status(400).json({ error:'Không thể reset TKB chuẩn' });
+    await ThoiKhoaBieu.resetWeek(MaLop, NamHoc, KyHoc, LoaiTKB);
+    res.json({ message:`Đã reset ${LoaiTKB} về TKB chuẩn` });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ error:'Lỗi khi reset tuần' });
   }
+}
 }
 
 module.exports = new ThoiKhoaBieuController();

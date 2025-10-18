@@ -56,57 +56,76 @@ class ThoiKhoaBieu {
     return rows;
   }
 
-  static async getGrid(MaLop, LoaiTKB, NamHoc, KyHoc) {
-    const [rows] = await db.execute(
-      `SELECT t.Thu, t.TietHoc, t.TenMonHoc, g.TenGiaoVien
-       FROM ThoiKhoaBieu t
-       JOIN GiaoVien g ON t.MaGiaoVien = g.MaGiaoVien
-       WHERE t.MaLop=? AND t.LoaiTKB=? AND t.NamHoc=? AND t.KyHoc=?
-       ORDER BY Thu, TietHoc`,
-      [MaLop, LoaiTKB, NamHoc, KyHoc]
-    );
+static async getGrid(MaLop, LoaiTKB, NamHoc, KyHoc) {
+  // Lấy TKB thực tế
+  let [rows] = await db.execute(`
+    SELECT t.Thu, t.TietHoc, t.TenMonHoc, g.TenGiaoVien, t.LoaiTKB
+    FROM ThoiKhoaBieu t
+    JOIN GiaoVien g ON t.MaGiaoVien = g.MaGiaoVien
+    WHERE t.MaLop=? AND t.NamHoc=? AND t.KyHoc=? AND t.LoaiTKB=?
+    ORDER BY Thu, TietHoc
+  `, [MaLop, NamHoc, KyHoc, LoaiTKB]);
 
-    const grid = {};
-    rows.forEach(r => {
-      if (!grid[r.Thu]) grid[r.Thu] = {};
-      grid[r.Thu][r.TietHoc] = { subject: r.TenMonHoc, teacher: r.TenGiaoVien };
-    });
-    return grid;
+  // Nếu không có dữ liệu tuần, lấy TKB chuẩn
+  if(rows.length === 0 && LoaiTKB !== 'Chuan') {
+    [rows] = await db.execute(`
+      SELECT t.Thu, t.TietHoc, t.TenMonHoc, g.TenGiaoVien
+      FROM ThoiKhoaBieu t
+      JOIN GiaoVien g ON t.MaGiaoVien = g.MaGiaoVien
+      WHERE t.MaLop=? AND t.NamHoc=? AND t.KyHoc=? AND t.LoaiTKB='Chuan'
+      ORDER BY Thu, TietHoc
+    `, [MaLop, NamHoc, KyHoc]);
   }
 
-  static async updateMultiple(cells) {
-    for (const cell of cells) {
-      const [gvRows] = await db.execute(
-        `SELECT g.MaGiaoVien 
-         FROM GVBoMon gbm 
-         JOIN GiaoVien g ON gbm.MaGVBM = g.MaGiaoVien
-         WHERE gbm.MaLop=? AND g.TenMonHoc=?`,
-        [cell.MaLop, cell.TenMonHoc]
-      );
-      const MaGiaoVien = gvRows[0]?.MaGiaoVien || null;
-      if (!MaGiaoVien) continue;
+  const grid = {};
+  rows.forEach(r => {
+    if (!grid[r.Thu]) grid[r.Thu] = {};
+    grid[r.Thu][r.TietHoc] = { subject: r.TenMonHoc, teacher: r.TenGiaoVien };
+  });
+  return grid;
+}
 
-      await db.execute(
-        `DELETE FROM ThoiKhoaBieu 
-         WHERE MaLop=? AND LoaiTKB=? AND NamHoc=? AND KyHoc=? AND Thu=? AND TietHoc=?`,
-        [cell.MaLop, cell.LoaiTKB, cell.NamHoc, cell.KyHoc, cell.Thu, cell.TietHoc]
-      );
 
-      await db.execute(
-        `INSERT INTO ThoiKhoaBieu 
-         (MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc, MaGiaoVien)
-         VALUES (?,?,?,?,?,?,?,?)`,
-        [cell.MaLop, cell.LoaiTKB, cell.NamHoc, cell.KyHoc, cell.Thu, cell.TietHoc, cell.TenMonHoc, MaGiaoVien]
-      );
-    }
+// Lưu TKB đúng cell
+static async updateMultiple(cells) {
+  for (const cell of cells) {
+    const { MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc } = cell;
+
+    // Lấy MaGiaoVien từ GVBoMon cho lớp và môn
+    const [gvRows] = await db.execute(`
+      SELECT g.MaGiaoVien 
+      FROM GVBoMon gbm 
+      JOIN GiaoVien g ON gbm.MaGVBM = g.MaGiaoVien
+      WHERE gbm.MaLop = ? AND g.TenMonHoc = ?
+      LIMIT 1
+    `, [MaLop, TenMonHoc]);
+
+    const MaGiaoVien = gvRows[0]?.MaGiaoVien || null;
+    if (!MaGiaoVien) continue;
+
+    // DELETE chỉ xóa đúng cell của tuần / tiết / thứ
+    await db.execute(`
+      DELETE FROM ThoiKhoaBieu 
+      WHERE MaLop=? AND LoaiTKB=? AND NamHoc=? AND KyHoc=? AND Thu=? AND TietHoc=?
+    `, [MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc]);
+
+    // INSERT cell mới
+    await db.execute(`
+      INSERT INTO ThoiKhoaBieu (MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc, MaGiaoVien)
+      VALUES (?,?,?,?,?,?,?,?)
+    `, [MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc, MaGiaoVien]);
   }
+}
 
-  static async resetWeek(MaLop, NamHoc, KyHoc, LoaiTKB) {
-    await db.execute(
-      'DELETE FROM ThoiKhoaBieu WHERE MaLop=? AND LoaiTKB=? AND NamHoc=? AND KyHoc=?',
-      [MaLop, LoaiTKB, NamHoc, KyHoc]
-    );
-  }
+// Reset tuần cụ thể
+static async resetWeek(MaLop, NamHoc, KyHoc, LoaiTKB) {
+  if(LoaiTKB==='Chuan') return; // Không xóa TKB chuẩn
+  await db.execute(`
+    DELETE FROM ThoiKhoaBieu 
+    WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND LoaiTKB=?
+  `, [MaLop, NamHoc, KyHoc, LoaiTKB]);
+}
+
 }
 
 module.exports = ThoiKhoaBieu;
