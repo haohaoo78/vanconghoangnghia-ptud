@@ -18,6 +18,9 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+// ✅ Thêm dòng này để Express phục vụ file tĩnh (JS, CSS, ảnh,...)
+app.use(express.static(path.join(__dirname, 'public')));
+
 // =====================
 // Import Router
 // =====================

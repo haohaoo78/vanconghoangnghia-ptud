@@ -97,42 +97,38 @@ class ThoiKhoaBieuController {
       const subjects = await ThoiKhoaBieu.getSubjectsWithTeacherByClass(MaLop, NamHoc, KyHoc);
       const timetable = await ThoiKhoaBieu.getGrid(MaLop, LoaiTKB, NamHoc, KyHoc);
 
-      res.json({
-        timetable,
-        subjects,
-        selectedNamHocStart,
-        statusMessage: 'Đã tải dữ liệu'
-      });
+      res.json({ timetable, subjects, selectedNamHocStart, statusMessage: 'Đã tải dữ liệu' });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Lỗi khi tải TKB' });
     }
   }
 
-async saveAll(req, res) {
-  try {
-    const { timetable, selectedNamHocStart } = req.body; 
-    if (!selectedNamHocStart) 
-      return res.status(400).json({ error: 'Thiếu ngày bắt đầu học kỳ' });
+  async saveAll(req, res) {
+    try {
+      const { timetable, selectedNamHocStart } = req.body; 
+      if (!selectedNamHocStart) 
+        return res.status(400).json({ error: 'Thiếu ngày bắt đầu học kỳ' });
 
-    await ThoiKhoaBieu.updateMultiple(timetable, selectedNamHocStart);
-    res.json({ message: 'Lưu thời khóa biểu thành công!' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi khi lưu TKB' });
+      await ThoiKhoaBieu.updateMultiple(timetable, selectedNamHocStart);
+      res.json({ message: 'Lưu thời khóa biểu thành công!' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Lỗi khi lưu TKB' });
+    }
   }
-}
-async resetWeek(req, res) {
-  try {
-    const { MaLop, NamHoc, KyHoc, LoaiTKB } = req.body;
-    if(!LoaiTKB || LoaiTKB==='Chuan') return res.status(400).json({ error:'Không thể reset TKB chuẩn' });
-    await ThoiKhoaBieu.resetWeek(MaLop, NamHoc, KyHoc, LoaiTKB);
-    res.json({ message:`Đã reset ${LoaiTKB} về TKB chuẩn` });
-  } catch(err) {
-    console.error(err);
-    res.status(500).json({ error:'Lỗi khi reset tuần' });
+
+  async resetWeek(req, res) {
+    try {
+      const { MaLop, NamHoc, KyHoc, LoaiTKB } = req.body;
+      if(!LoaiTKB || LoaiTKB==='Chuan') return res.status(400).json({ error:'Không thể reset TKB chuẩn' });
+      await ThoiKhoaBieu.resetWeek(MaLop, NamHoc, KyHoc, LoaiTKB);
+      res.json({ message:`Đã reset ${LoaiTKB} về TKB chuẩn` });
+    } catch(err) {
+      console.error(err);
+      res.status(500).json({ error:'Lỗi khi reset tuần' });
+    }
   }
-}
 }
 
 module.exports = new ThoiKhoaBieuController();
