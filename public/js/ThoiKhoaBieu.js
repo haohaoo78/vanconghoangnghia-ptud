@@ -178,30 +178,83 @@ function attachSubjectChangeEvents() {
       const Thu = this.dataset.thu;
       const Tiet = this.dataset.tiet;
       const div = document.getElementById(`teacher-${Thu}-${Tiet}`);
+      const f = FilterForm;
 
-      if (!TenMonHoc) {
-        div.innerText = ''; // xóa giáo viên ngay
+      
+
+      if (!TenMonHoc) { // Xóa cell
+        try {
+          const resDel = await fetch('/api/thoikhoabieu/deleteCell', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              MaLop: f.MaLop.value,
+              NamHoc: f.NamHoc.value,
+              KyHoc: f.KyHoc.value,
+              LoaiTKB: f.LoaiTKB.value,
+              Thu: Thu === "8" ? "CN" : Thu, // Chủ nhật gửi "CN" cho backend
+              TietHoc: Tiet
+            })
+          });
+          const result = await resDel.json();
+          showMessage(result.message || 'Đã xóa tiết.', 'success');
+        } catch {
+          showMessage('Lỗi khi xóa tiết', 'error');
+        }
+        div.innerText = '';
         div.classList.remove('missing');
+        this.value = '';
+        return;
+      }
+    try {
+        const resCheck = await fetch('/api/thoikhoabieu/checkSubjectLimit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            MaLop: f.MaLop.value,
+            NamHoc: f.NamHoc.value,
+            KyHoc: f.KyHoc.value,
+            LoaiTKB: f.LoaiTKB.value,
+            TenMonHoc,
+            Khoi: f.Khoi.value
+          })
+        });
+        const dataCheck = await resCheck.json();
+        if (dataCheck.error) {
+          showMessage(dataCheck.message, 'error');
+          this.value = '';
+          div.innerText = '';
+          div.classList.remove('missing');
+          return;
+        }
+      } catch (err) {
+        showMessage('Lỗi kiểm tra số tiết', 'error');
         return;
       }
 
-      const f = FilterForm;
-      const res = await fetch('/api/thoikhoabieu/getTeacher', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ MaLop: f.MaLop.value, TenMonHoc })
-      });
-      const data = await res.json();
-      if (data?.TenGiaoVien) {
-        div.innerText = data.TenGiaoVien;
-        div.classList.remove('missing');
-      } else {
-        div.innerText = 'Chưa phân công';
+      // Lấy giáo viên
+      try {
+        const res = await fetch('/api/thoikhoabieu/getTeacher', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ MaLop: f.MaLop.value, TenMonHoc })
+        });
+        const data = await res.json();
+        if (data?.TenGiaoVien) {
+          div.innerText = data.TenGiaoVien;
+          div.classList.remove('missing');
+        } else {
+          div.innerText = 'Chưa phân công';
+          div.classList.add('missing');
+        }
+      } catch {
+        div.innerText = 'Lỗi lấy GV';
         div.classList.add('missing');
       }
     });
   });
 }
+
 
 // ========================
 // LƯU TKB + XÓA DÒNG TRỐNG + GIÃN 3 GIÂY TRƯỚC LOAD LẠI

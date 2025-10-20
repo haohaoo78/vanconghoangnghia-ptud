@@ -11,5 +11,8 @@ router.post('/saveAll', (req, res) => ThoiKhoaBieuController.saveAll(req, res));
 router.post('/resetWeek', (req, res) => ThoiKhoaBieuController.resetWeek(req, res));
 router.post('/getSubjectsByClass', (req, res) => ThoiKhoaBieuController.getSubjectsByClass(req, res));
 router.post('/getLopTheoKhoi', (req, res) => ThoiKhoaBieuController.getLopTheoKhoi(req, res));
+router.post('/deleteCell', (req, res) => ThoiKhoaBieuController.deleteCell(req, res));
+router.post('/checkSubjectLimit', (req, res) => ThoiKhoaBieuController.checkSubjectLimit(req, res));
+
 
 module.exports = router;

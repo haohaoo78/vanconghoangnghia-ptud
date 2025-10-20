@@ -3,6 +3,9 @@ const db = require('../config/database');
 class ThoiKhoaBieu {
   static db = db;
 
+  // ====================
+  // Danh sách khối, lớp, năm học, kỳ học
+  // ====================
   static async getKhoiList() {
     const [rows] = await db.execute('SELECT MaKhoi, TenKhoi FROM Khoi ORDER BY MaKhoi');
     return rows;
@@ -29,6 +32,9 @@ class ThoiKhoaBieu {
     return rows;
   }
 
+  // ====================
+  // Giáo viên & môn
+  // ====================
   static async getTeacher(MaLop, TenMonHoc) {
     const [rows] = await db.execute(`
       SELECT g.MaGiaoVien, g.TenGiaoVien
@@ -52,6 +58,9 @@ class ThoiKhoaBieu {
     return rows;
   }
 
+  // ====================
+  // Grid TKB
+  // ====================
   static async getGrid(MaLop, LoaiTKB, NamHoc, KyHoc) {
     let [rows] = await db.execute(`
       SELECT t.Thu, t.TietHoc, t.TenMonHoc, g.TenGiaoVien
@@ -79,11 +88,22 @@ class ThoiKhoaBieu {
     return grid;
   }
 
+  // ====================
+  // Thao tác cell
+  // ====================
+  static async deleteCell(MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc) {
+    const [result] = await db.execute(`
+      DELETE FROM ThoiKhoaBieu
+      WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND LoaiTKB=? AND Thu=? AND TietHoc=?
+    `, [MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc]);
+    return result;
+  }
+
   static async updateMultiple(cells, startDate) {
     const baseDate = new Date(startDate);
     if (isNaN(baseDate.getTime())) throw new Error('Ngày bắt đầu học kỳ không hợp lệ');
 
-    // 🔹 Chuẩn hóa Thứ 2 đầu tiên
+    // Tìm Thứ 2 đầu tiên
     const firstMonday = new Date(baseDate);
     const day = firstMonday.getDay(); // 0=CN, 1=T2
     const offset = day === 1 ? 0 : day === 0 ? 1 : 8 - day;
@@ -94,20 +114,13 @@ class ThoiKhoaBieu {
       const { MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc } = cell;
       const weekNumber = LoaiTKB.startsWith('Tuan') ? parseInt(LoaiTKB.replace('Tuan', '')) : 1;
 
-      // 🔹 Xử lý đúng Chủ nhật
-      let thuOffset;
-      if (Thu === 'CN') thuOffset = 6; // Chủ nhật
-      else thuOffset = parseInt(Thu) - 2; // Thứ 2 = 0, Thứ3 = 1 ...
-
+      const thuOffset = Thu === 'CN' ? 6 : parseInt(Thu) - 2;
       const ngayObj = new Date(firstMonday);
       ngayObj.setDate(firstMonday.getDate() + (weekNumber - 1) * 7 + thuOffset);
 
-      // Chuẩn hóa timezone
       const Ngay = new Date(ngayObj.getTime() - ngayObj.getTimezoneOffset() * 60000)
-        .toISOString()
-        .split('T')[0];
+        .toISOString().split('T')[0];
 
-      // Lấy MaGiaoVien
       const [gvRows] = await db.execute(`
         SELECT g.MaGiaoVien
         FROM GVBoMon gbm
@@ -117,7 +130,6 @@ class ThoiKhoaBieu {
       const MaGiaoVien = gvRows[0]?.MaGiaoVien;
       if (!MaGiaoVien) continue;
 
-      // Xoá trước khi thêm
       await db.execute(`
         DELETE FROM ThoiKhoaBieu
         WHERE MaLop=? AND LoaiTKB=? AND Thu=? AND TietHoc=? AND KyHoc=? AND NamHoc=?
@@ -137,15 +149,40 @@ class ThoiKhoaBieu {
       DELETE FROM ThoiKhoaBieu WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND LoaiTKB=?
     `, [MaLop, NamHoc, KyHoc, LoaiTKB]);
   }
-async deleteCell(MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc) {
-  const ThuDB = Thu === "CN" ? 8 : Thu;
-  const sql = `
-    DELETE FROM ThoiKhoaBieu
-    WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND LoaiTKB=? AND Thu=? AND TietHoc=?
-  `;
-  return db.execute(sql, [MaLop, NamHoc, KyHoc, LoaiTKB, ThuDB, TietHoc]);
+
+  // ====================
+  // Kiểm tra số tiết
+  // ====================
+static async countSubjectWeek(MaLop, NamHoc, KyHoc, LoaiTKB, TenMonHoc, weekStartDate) {
+  if (!weekStartDate) weekStartDate = new Date('2025-08-01');
+
+  const start = new Date(weekStartDate);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6); // CN
+
+  // Chuyển sang format YYYY-MM-DD để so sánh trong SQL
+  const startStr = start.toISOString().split('T')[0];
+  const endStr = end.toISOString().split('T')[0];
+
+  const [rows] = await db.execute(`
+    SELECT COUNT(*) AS SoTiet
+    FROM ThoiKhoaBieu
+    WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND LoaiTKB=? AND TenMonHoc=? 
+      AND Ngay BETWEEN ? AND ?
+  `, [MaLop, NamHoc, KyHoc, LoaiTKB, TenMonHoc, startStr, endStr]);
+
+  return rows[0]?.SoTiet || 0;
 }
 
+  static async getSubjectLimitByKhoi(TenMonHoc, Khoi) {
+    const [rows] = await db.execute(`
+      SELECT SoTiet
+      FROM MonHoc
+      WHERE TenMonHoc=? AND Khoi=? AND TrangThai='Đang dạy'
+      LIMIT 1
+    `, [TenMonHoc.trim(), Khoi.trim()]);
+    return rows[0]?.SoTiet || 0;
+  }
 }
 
 module.exports = ThoiKhoaBieu;

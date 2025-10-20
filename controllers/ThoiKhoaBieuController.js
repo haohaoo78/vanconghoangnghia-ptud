@@ -1,4 +1,4 @@
-const ThoiKhoaBieu = require('../models/ThoiKhoaBieu');
+const ThoiKhoaBieu = require('../models/ThoiKhoaBieuModel');
 
 class ThoiKhoaBieuController {
   async renderPage(req, res) {
@@ -129,16 +129,67 @@ class ThoiKhoaBieuController {
       res.status(500).json({ error:'Lỗi khi reset tuần' });
     }
   }
-  async deleteCell(req, res) {
+async deleteCell(req, res) {
   try {
     const { MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc } = req.body;
-    await ThoiKhoaBieu.deleteCell(MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc);
-    res.json({ message: 'Đã xóa môn học khỏi CSDL' });
+    const result = await ThoiKhoaBieu.deleteCell(MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc);
+
+    if (!result.affectedRows || result.affectedRows === 0) {
+      return res.json({ error: 0, message: 'Không có dữ liệu để xóa, cell đã trống' }); // Không coi là lỗi
+    }
+
+    res.json({ error: 0, message: 'Đã xóa môn học khỏi CSDL' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Lỗi khi xóa cell' });
+    res.status(500).json({ error: 1, message: 'Lỗi khi xóa cell' });
   }
 }
+
+async checkSubjectLimit(req, res) {
+  try {
+    const { MaLop, NamHoc, KyHoc, LoaiTKB, TenMonHoc, Khoi, NamHocStart } = req.body;
+
+    if (!TenMonHoc || !MaLop || !NamHoc || !KyHoc || !LoaiTKB || !Khoi || !NamHocStart) {
+      return res.status(400).json({ error: 1, message: 'Thiếu thông tin để kiểm tra' });
+    }
+
+    // Tính ngày Thứ 2 đầu tuần dựa trên NamHocStart và LoaiTKB
+    let weekNumber = 1;
+    if (LoaiTKB.startsWith('Tuan')) {
+      weekNumber = parseInt(LoaiTKB.replace('Tuan', ''), 10) || 1;
+    }
+    const weekStartDate = (() => {
+      const base = new Date(NamHocStart);
+      if (isNaN(base)) return new Date('2025-08-01');
+      const d = base.getDay();
+      const offset = d === 1 ? 0 : d === 0 ? 1 : 8 - d;
+      base.setDate(base.getDate() + offset + (weekNumber - 1) * 7);
+      return base;
+    })();
+
+    // Kiểm tra số tiết đã có trong tuần
+    const currentCount = await ThoiKhoaBieu.countSubjectWeek(
+      MaLop, NamHoc, KyHoc, LoaiTKB, TenMonHoc, undefined, weekStartDate
+    );
+
+    // Lấy số tiết tối đa theo khối
+    const maxPerWeek = await ThoiKhoaBieu.getSubjectLimitByKhoi(TenMonHoc, Khoi);
+
+    if (currentCount >= maxPerWeek) {
+      return res.json({
+        error: 1,
+        message: `Môn ${TenMonHoc} đã đủ ${maxPerWeek} tiết/tuần cho khối ${Khoi}`
+      });
+    }
+
+    res.json({ error: 0, message: 'Có thể thêm môn học' });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 1, message: 'Lỗi khi kiểm tra số tiết' });
+  }
+}
+
 
 }
 
