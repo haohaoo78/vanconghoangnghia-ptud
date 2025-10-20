@@ -8,10 +8,9 @@ body {
   font-family: 'Segoe UI', Arial, sans-serif;
   margin: 20px;
   background: #f8fafc;
-  color: #222;
+  color: #003366;
 }
 h2 {
-  color: #003366;
   text-align: center;
   margin-bottom: 20px;
   font-size: 24px;
@@ -44,6 +43,7 @@ select, input {
   border-radius: 4px;
   background: white;
   box-sizing: border-box;
+  color: #003366;
 }
 table {
   border-collapse: collapse;
@@ -58,6 +58,7 @@ th, td {
   padding: 8px;
   text-align: center;
   vertical-align: middle;
+  color: #003366;
 }
 th {
   background: #003366;
@@ -70,16 +71,20 @@ tr:nth-child(even) td {
 .btn {
   padding: 8px 14px;
   cursor: pointer;
-  background: #003366;
-  color: white;
   border: none;
   border-radius: 4px;
   font-weight: 500;
   transition: background 0.2s ease;
 }
-.btn:hover {
-  background: #00264d;
-}
+.btn.show-btn { background: #003366; color: white; }
+.btn.show-btn:hover { background: #00264d; }
+
+.btn.save-btn { background: #0f5132; color: white; }
+.btn.save-btn:hover { background: #0c3e26; }
+
+.btn.reset-btn { background: #e63946; color: white; }
+.btn.reset-btn:hover { background: #b22234; }
+
 .info {
   display: none;
   margin-top: 10px;
@@ -87,16 +92,8 @@ tr:nth-child(even) td {
   border-radius: 6px;
   text-align: center;
 }
-.info.success {
-  background-color: #e0f7ef;
-  color: #007f5f;
-  border: 1px solid #007f5f;
-}
-.info.error {
-  background-color: #ffe3e3;
-  color: #c1121f;
-  border: 1px solid #c1121f;
-}
+.info.success { background-color: #e0f7ef; color: #0f5132; border: 1px solid #0f5132; }
+.info.error { background-color: #ffe3e3; color: #c1121f; border: 1px solid #c1121f; }
 #toast-message {
   position: fixed;
   top: 15px;
@@ -150,27 +147,18 @@ tr:nth-child(even) td {
 #confirm-yes { background: #e63946; color: white; }
 #confirm-no { background: #ccc; }
 
-.session-header {
-  background-color: #f3ece4;
-  font-weight: bold;
-  text-align: center;
-}
-.session-title {
-  padding: 6px;
-  font-size: 15px;
-  color: #5d4037;
-}
-.teacher {
-  display: block;
-  margin-top: 4px;
-  font-size: 12px;
-  color: #003366;
-}
+.session-header { background-color: #f3ece4; font-weight: bold; text-align: center; }
+.session-title { padding: 6px; font-size: 15px; color: #5d4037; }
+.teacher { display: block; margin-top: 4px; font-size: 12px; color: #003366; }
 .teacher.missing { color: #d62828; }
-.note {
-  font-size: 13px;
-  color: #333;
-  margin-bottom: 12px;
+.note { font-size: 13px; color: #003366; margin-bottom: 12px; }
+
+/* Chèn nút Save + Reset bên phải dưới */
+#timetable-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
 }
 </style>
 </head>
@@ -227,8 +215,7 @@ tr:nth-child(even) td {
 
       <input type="hidden" id="NamHocStart" name="NamHocStart" value="<%= selectedNamHocStart %>">
 
-      <button class="btn" type="submit">Hiển thị</button>
-      <button class="btn" type="button" id="reset-week">Reset về TKB chuẩn</button>
+      <button class="btn show-btn" type="submit">Hiển thị</button>
     </form>
   </div>
 
@@ -238,7 +225,10 @@ tr:nth-child(even) td {
   <div id="timetable-container">
     <form id="timetable-form">
       <table id="timetable-table"></table>
-      <button type="button" id="save-timetable" class="btn">Lưu thời khóa biểu</button>
+      <div id="timetable-buttons">
+        <button type="button" id="save-timetable" class="btn save-btn">Lưu thời khóa biểu</button>
+        <button type="button" id="reset-week" class="btn reset-btn">Reset về TKB chuẩn</button>
+      </div>
     </form>
   </div>
 
