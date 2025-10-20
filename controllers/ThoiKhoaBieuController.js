@@ -129,6 +129,17 @@ class ThoiKhoaBieuController {
       res.status(500).json({ error:'Lỗi khi reset tuần' });
     }
   }
+  async deleteCell(req, res) {
+  try {
+    const { MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc } = req.body;
+    await ThoiKhoaBieu.deleteCell(MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc);
+    res.json({ message: 'Đã xóa môn học khỏi CSDL' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi khi xóa cell' });
+  }
+}
+
 }
 
 module.exports = new ThoiKhoaBieuController();

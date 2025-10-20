@@ -137,6 +137,15 @@ class ThoiKhoaBieu {
       DELETE FROM ThoiKhoaBieu WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND LoaiTKB=?
     `, [MaLop, NamHoc, KyHoc, LoaiTKB]);
   }
+async deleteCell(MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc) {
+  const ThuDB = Thu === "CN" ? 8 : Thu;
+  const sql = `
+    DELETE FROM ThoiKhoaBieu
+    WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND LoaiTKB=? AND Thu=? AND TietHoc=?
+  `;
+  return db.execute(sql, [MaLop, NamHoc, KyHoc, LoaiTKB, ThuDB, TietHoc]);
+}
+
 }
 
 module.exports = ThoiKhoaBieu;

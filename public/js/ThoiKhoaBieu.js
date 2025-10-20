@@ -38,7 +38,8 @@ KhoiSelect.addEventListener('change', async () => {
   LopSelect.innerHTML = '<option value="">-- Chọn lớp --</option>';
   if (!KhoiSelect.value) return;
   const res = await fetch('/api/thoikhoabieu/getLopTheoKhoi', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ MaKhoi: KhoiSelect.value })
   });
   const data = await res.json();
@@ -50,7 +51,8 @@ KhoiSelect.addEventListener('change', async () => {
 // ========================
 NamHocSelect.addEventListener('change', async () => {
   const res = await fetch('/api/thoikhoabieu/getKyHocList', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ NamHoc: NamHocSelect.value })
   });
   const list = await res.json();
@@ -63,8 +65,8 @@ NamHocSelect.addEventListener('change', async () => {
 function getWeekStartDate(startStr, weekNumber) {
   if (!startStr) startStr = '2025-08-01';
   const base = new Date(startStr);
-  if (isNaN(base)) return new Date('2025-08-01'); // fallback
-  const d = base.getDay(); // 0=CN
+  if (isNaN(base)) return new Date('2025-08-01'); 
+  const d = base.getDay();
   const offset = d === 1 ? 0 : (d === 0 ? 1 : 8 - d);
   base.setDate(base.getDate() + offset + (weekNumber - 1) * 7);
   return base;
@@ -74,21 +76,27 @@ function getWeekStartDate(startStr, weekNumber) {
 // LOAD TKB
 // ========================
 FilterForm.addEventListener('submit', e => {
-  e.preventDefault(); loadTKB();
+  e.preventDefault(); 
+  loadTKB();
 });
 
 async function loadTKB() {
   const fData = Object.fromEntries(new FormData(FilterForm).entries());
   if (!fData.Khoi || !fData.MaLop || !fData.NamHoc || !fData.KyHoc) {
-    showMessage('Vui lòng chọn đầy đủ khối, lớp, năm học và học kỳ.', 'error'); return;
+    showMessage('Vui lòng chọn đầy đủ khối, lớp, năm học và học kỳ.', 'error'); 
+    return;
   }
 
   const res = await fetch('/api/thoikhoabieu/getAll', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(fData)
   });
   const json = await res.json();
-  if (!json || json.error) { showMessage('Không thể tải dữ liệu.', 'error'); return; }
+  if (!json || json.error) { 
+    showMessage('Không thể tải dữ liệu.', 'error'); 
+    return; 
+  }
 
   subjectsByClass = json.subjects || [];
   const timetableRaw = json.timetable || {};
@@ -108,7 +116,9 @@ async function loadTKB() {
       ? 'Chưa có thời khóa biểu chuẩn.'
       : 'Chưa có thời khóa biểu tuần này.';
     showMessage(msg, 'warn');
-  } else { showMessage('Đã tải TKB thành công.', 'success'); }
+  } else { 
+    showMessage('Đã tải TKB thành công.', 'success'); 
+  }
 
   NamHocStartInput.value = json.selectedNamHocStart || '2025-08-01';
   const weekNumber = fData.LoaiTKB === 'Chuan' ? 1 : parseInt(fData.LoaiTKB.replace('Tuan',''));
@@ -129,11 +139,9 @@ function renderTimetable(tt, weekStart) {
   }
   html += '</tr></thead><tbody>';
 
-  // Buổi sáng
   html += `<tr class="session-header"><td colspan="8">Buổi sáng</td></tr>`;
   for (let p = 1; p <= 5; p++) html += createRow(tt, p);
 
-  // Buổi chiều
   html += `<tr class="session-header"><td colspan="8">Buổi chiều</td></tr>`;
   for (let p = 6; p <= 10; p++) html += createRow(tt, p);
 
@@ -170,55 +178,79 @@ function attachSubjectChangeEvents() {
       const Thu = this.dataset.thu;
       const Tiet = this.dataset.tiet;
       const div = document.getElementById(`teacher-${Thu}-${Tiet}`);
-      if (!TenMonHoc) { div.innerText = ''; div.classList.remove('missing'); return; }
+
+      if (!TenMonHoc) {
+        div.innerText = ''; // xóa giáo viên ngay
+        div.classList.remove('missing');
+        return;
+      }
 
       const f = FilterForm;
       const res = await fetch('/api/thoikhoabieu/getTeacher', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ MaLop: f.MaLop.value, TenMonHoc })
       });
       const data = await res.json();
-      if (data?.TenGiaoVien) { div.innerText = data.TenGiaoVien; div.classList.remove('missing'); }
-      else { div.innerText = 'Chưa phân công'; div.classList.add('missing'); }
+      if (data?.TenGiaoVien) {
+        div.innerText = data.TenGiaoVien;
+        div.classList.remove('missing');
+      } else {
+        div.innerText = 'Chưa phân công';
+        div.classList.add('missing');
+      }
     });
   });
 }
 
 // ========================
-// LƯU TKB
+// LƯU TKB + XÓA DÒNG TRỐNG + GIÃN 3 GIÂY TRƯỚC LOAD LẠI
 // ========================
 document.getElementById('save-timetable').addEventListener('click', async () => {
   const f = FilterForm;
   const timetableData = [];
   const namHocStart = f.NamHocStart.value;
+
   if (!namHocStart || isNaN(new Date(namHocStart))) {
     showMessage('Ngày bắt đầu năm học không hợp lệ.', 'error');
     return;
   }
 
   document.querySelectorAll('.subject-select').forEach(sel => {
-    if (sel.value) {
+    const Thu = sel.dataset.thu === "8" ? "CN" : sel.dataset.thu;
+    const Tiet = sel.dataset.tiet;
+    const TenMonHoc = sel.value;
+
+    if (TenMonHoc) {
       timetableData.push({
         MaLop: f.MaLop.value,
         NamHoc: f.NamHoc.value,
         KyHoc: f.KyHoc.value,
         LoaiTKB: f.LoaiTKB.value,
-        Thu: sel.dataset.thu === "8" ? "CN" : sel.dataset.thu,
-        TietHoc: sel.dataset.tiet,
-        TenMonHoc: sel.value
+        Thu,
+        TietHoc: Tiet,
+        TenMonHoc
       });
     }
   });
 
-  if (!timetableData.length) { showMessage('Không có dữ liệu để lưu.', 'error'); return; }
+  if (!timetableData.length) { 
+    showMessage('Không có dữ liệu để lưu.', 'error'); 
+    return; 
+  }
 
   const res = await fetch('/api/thoikhoabieu/saveAll', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ timetable: timetableData, selectedNamHocStart: namHocStart })
   });
   const result = await res.json();
+
   if (result.error) showMessage('Lưu thất bại.', 'error');
-  else showMessage('Lưu TKB thành công.', 'success');
+  else {
+    showMessage('Lưu TKB thành công.', 'success');
+    setTimeout(() => loadTKB(), 3000); // giãn 3s trước load lại
+  }
 });
 
 // ========================
@@ -230,7 +262,10 @@ const noBtn = document.getElementById('confirm-no');
 
 document.getElementById('reset-week').addEventListener('click', () => {
   const f = FilterForm;
-  if (f.LoaiTKB.value === 'Chuan') { showMessage('Không thể đặt lại TKB chuẩn.', 'error'); return; }
+  if (f.LoaiTKB.value === 'Chuan') { 
+    showMessage('Không thể đặt lại TKB chuẩn.', 'error'); 
+    return; 
+  }
   resetBox.style.display = 'flex';
 });
 
@@ -239,7 +274,8 @@ yesBtn.addEventListener('click', async () => {
   resetBox.style.display = 'none';
   const f = FilterForm;
   const res = await fetch('/api/thoikhoabieu/resetWeek', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       MaLop: f.MaLop.value,
       NamHoc: f.NamHoc.value,
