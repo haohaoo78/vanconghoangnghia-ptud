@@ -4,85 +4,212 @@
 <meta charset="UTF-8">
 <title>Quản lý Thời Khóa Biểu</title>
 <style>
-body{font-family:Arial;margin:20px;}
-h2{color:#2a9d8f;}
-.controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
-label{font-size:14px;}
-table{border-collapse:collapse;width:100%;margin-bottom:10px;}
-th,td{border:1px solid #ccc;padding:6px;text-align:center;vertical-align:middle;}
-th{background:#f4a261;color:white;}
-select,input{width:100%;box-sizing:border-box;}
-.btn{padding:6px 12px;margin:5px;cursor:pointer;background:#2a9d8f;color:white;border:none;border-radius:4px;}
-.note{font-size:13px;color:#444;margin-bottom:12px;}
-.info{margin-top:8px;color:#085e5c;font-weight:600;}
-.teacher{display:block;margin-top:4px;font-size:12px;color:#333;}
-.teacher.missing{color:#d62828;}
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 20px;
+    background: #f9fafc;
+    color: #222;
+  }
+  h2 {
+    color: #003366;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
+  .controls {
+    background: #e6eef7;
+    border: 1px solid #ccd6e0;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .controls form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: space-between;
+  }
+  label {
+    font-size: 14px;
+    flex: 1;
+    min-width: 180px;
+  }
+  select, input {
+    width: 100%;
+    padding: 6px;
+    margin-top: 4px;
+    border: 1px solid #99aabb;
+    border-radius: 4px;
+    box-sizing: border-box;
+    background: white;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  th {
+    background: #003366;
+    color: white;
+    font-weight: 600;
+  }
+  tr:nth-child(even) td {
+    background: #f5f8fb;
+  }
+
+  /* --- Dòng phân cách giữa buổi sáng và buổi chiều --- */
+  .divider-row td {
+    border: none !important;
+    background: #004080;
+    height: 3px;
+    padding: 0;
+  }
+
+  .btn {
+    padding: 8px 14px;
+    cursor: pointer;
+    background: #003366;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background 0.2s ease;
+  }
+  .btn:hover {
+    background: #00264d;
+  }
+  .note {
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 12px;
+  }
+  .info {
+    margin-top: 8px;
+    color: #003366;
+    font-weight: 600;
+  }
+  .teacher {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #003366;
+  }
+  .teacher.missing {
+    color: #d62828;
+  }
+  #save-timetable {
+    margin-top: 12px;
+    background: #004080;
+    border-radius: 5px;
+  }
+  #save-timetable:hover {
+    background: #002d5a;
+  }
+  /* Thông báo */
+.info {
+  display: none;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 6px;
+  transition: opacity 0.5s;
+  text-align: center;
+}
+.info.success {
+  background-color: #e0f7ef;
+  color: #007f5f;
+  border: 1px solid #007f5f;
+}
+.info.error {
+  background-color: #ffe3e3;
+  color: #c1121f;
+  border: 1px solid #c1121f;
+}
+
+/* Cắt dòng trong bảng */
+th small {
+  display: block;
+  color: #f0f0f0;
+  font-size: 12px;
+}
+
 </style>
 </head>
 <body>
-<h2>Quản lý Thời Khóa Biểu</h2>
+  <h2>Quản lý Thời Khóa Biểu</h2>
 
-<div class="controls">
-<form id="filter-form">
-  <label>Khối:
-    <select id="Khoi" name="Khoi" required>
-      <option value="">--Chọn khối--</option>
-      <% khoiList.forEach(k => { %>
-        <option value="<%= k.MaKhoi %>" <%= k.MaKhoi===selectedKhoi?'selected':'' %>><%= k.TenKhoi %></option>
-      <% }) %>
-    </select>
-  </label>
+  <div class="controls">
+    <form id="filter-form">
+      <label>Khối:
+        <select id="Khoi" name="Khoi" required>
+          <option value="">--Chọn khối--</option>
+          <% khoiList.forEach(k => { %>
+            <option value="<%= k.MaKhoi %>" <%= k.MaKhoi===selectedKhoi?'selected':'' %>><%= k.TenKhoi %></option>
+          <% }) %>
+        </select>
+      </label>
 
-  <label>Lớp:
-    <select name="MaLop" id="MaLop" required>
-      <option value="">--Chọn lớp--</option>
-      <% classes.forEach(c => { %>
-        <option value="<%= c.MaLop %>" <%= c.MaLop===selectedClass?'selected':'' %>><%= c.TenLop %></option>
-      <% }) %>
-    </select>
-  </label>
+      <label>Lớp:
+        <select name="MaLop" id="MaLop" required>
+          <option value="">--Chọn lớp--</option>
+          <% classes.forEach(c => { %>
+            <option value="<%= c.MaLop %>" <%= c.MaLop===selectedClass?'selected':'' %>><%= c.TenLop %></option>
+          <% }) %>
+        </select>
+      </label>
 
-  <label>Năm học:
-    <select name="NamHoc" id="NamHoc">
-      <% namHocList.forEach(nh=>{ %>
-        <option value="<%= nh %>" <%= nh===selectedNamHoc?'selected':'' %>><%= nh %></option>
-      <% }) %>
-    </select>
-  </label>
+      <label>Năm học:
+        <select name="NamHoc" id="NamHoc">
+          <% namHocList.forEach(nh=>{ %>
+            <option value="<%= nh %>" <%= nh===selectedNamHoc?'selected':'' %>><%= nh %></option>
+          <% }) %>
+        </select>
+      </label>
 
-  <label>Học kỳ:
-    <select name="KyHoc" id="KyHoc">
-      <% kyHocList.forEach(ky => { %>
-        <option value="<%= ky %>" <%= ky===selectedKyHoc?'selected':'' %>><%= ky %></option>
-      <% }) %>
-    </select>
-  </label>
+      <label>Học kỳ:
+        <select name="KyHoc" id="KyHoc">
+          <% kyHocList.forEach(ky => { %>
+            <option value="<%= ky %>" <%= ky===selectedKyHoc?'selected':'' %>><%= ky %></option>
+          <% }) %>
+        </select>
+      </label>
 
-  <label>Tuần:
-    <select name="LoaiTKB" id="LoaiTKB">
-      <option value="Chuan" <%= selectedLoaiTKB==='Chuan'?'selected':'' %>>TKB chuẩn</option>
-      <% for(let w=1; w<=20; w++){ %>
-        <option value="Tuan<%= w %>" <%= selectedLoaiTKB==='Tuan'+w?'selected':'' %>>Tuần <%= w %></option>
-      <% } %>
-    </select>
-  </label>
+      <label>Tuần:
+        <select name="LoaiTKB" id="LoaiTKB">
+          <option value="Chuan" <%= selectedLoaiTKB==='Chuan'?'selected':'' %>>TKB chuẩn</option>
+          <% for(let w=1; w<=20; w++){ %>
+            <option value="Tuan<%= w %>" <%= selectedLoaiTKB==='Tuan'+w?'selected':'' %>>Tuần <%= w %></option>
+          <% } %>
+        </select>
+      </label>
 
-  <input type="hidden" id="NamHocStart" name="NamHocStart" value="<%= selectedNamHocStart %>">
+      <input type="hidden" id="NamHocStart" name="NamHocStart" value="<%= selectedNamHocStart %>">
 
-  <button class="btn" type="submit">Hiển thị</button>
-  <button class="btn" type="button" id="reset-week">Reset về TKB chuẩn</button>
-</form>
-</div>
+      <button class="btn" type="submit">Hiển thị</button>
+      <button class="btn" type="button" id="reset-week" style="background:#004080;">Reset về TKB chuẩn</button>
+    </form>
+  </div>
 
-<div class="note">Chú ý: Chọn "TKB chuẩn" hoặc tuần cụ thể để chỉnh sửa.</div>
-<div id="status" class="info"><%= statusMessage || 'Chưa có dữ liệu' %></div>
+  <div class="note">Chú ý: Chọn "TKB chuẩn" hoặc tuần cụ thể để chỉnh sửa.</div>
+  <div id="status" class="info"><%= statusMessage || 'Chưa có dữ liệu' %></div>
 
-<div id="timetable-container">
-<form id="timetable-form">
-<table id="timetable-table"></table>
-<button type="button" id="save-timetable">Lưu TKB</button>
-</form>
-</div>
-<script src="/js/ThoiKhoaBieu.js"></script>
+  <div id="timetable-container">
+    <form id="timetable-form">
+      <table id="timetable-table"></table>
+      <button type="button" id="save-timetable" class="btn">Lưu TKB</button>
+    </form>
+  </div>
+
+  <!-- Nhúng script JS -->
+  <script src="/js/ThoiKhoaBieu.js"></script>
 </body>
 </html>
