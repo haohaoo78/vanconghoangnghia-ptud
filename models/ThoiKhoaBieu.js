@@ -9,7 +9,10 @@ class ThoiKhoaBieu {
   }
 
   static async getClassesByKhoi(MaKhoi) {
-    const [rows] = await db.execute('SELECT MaLop, TenLop FROM Lop WHERE Khoi=? ORDER BY TenLop', [MaKhoi]);
+    const [rows] = await db.execute(
+      'SELECT MaLop, TenLop FROM Lop WHERE Khoi=? ORDER BY TenLop',
+      [MaKhoi]
+    );
     return rows;
   }
 
@@ -19,7 +22,10 @@ class ThoiKhoaBieu {
   }
 
   static async getKyHocList(NamHoc) {
-    const [rows] = await db.execute('SELECT KyHoc, NgayBatDau FROM HocKy WHERE NamHoc=? ORDER BY KyHoc', [NamHoc]);
+    const [rows] = await db.execute(
+      'SELECT KyHoc, NgayBatDau FROM HocKy WHERE NamHoc=? ORDER BY KyHoc',
+      [NamHoc]
+    );
     return rows;
   }
 
@@ -87,13 +93,21 @@ class ThoiKhoaBieu {
     for (const cell of validCells) {
       const { MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc } = cell;
       const weekNumber = LoaiTKB.startsWith('Tuan') ? parseInt(LoaiTKB.replace('Tuan', '')) : 1;
-      const thuOffset = parseInt(Thu) - 2; // Thứ2=0, Thứ3=1...
+
+      // 🔹 Xử lý đúng Chủ nhật
+      let thuOffset;
+      if (Thu === 'CN') thuOffset = 6; // Chủ nhật
+      else thuOffset = parseInt(Thu) - 2; // Thứ 2 = 0, Thứ3 = 1 ...
+
       const ngayObj = new Date(firstMonday);
       ngayObj.setDate(firstMonday.getDate() + (weekNumber - 1) * 7 + thuOffset);
+
+      // Chuẩn hóa timezone
       const Ngay = new Date(ngayObj.getTime() - ngayObj.getTimezoneOffset() * 60000)
         .toISOString()
         .split('T')[0];
 
+      // Lấy MaGiaoVien
       const [gvRows] = await db.execute(`
         SELECT g.MaGiaoVien
         FROM GVBoMon gbm
@@ -103,6 +117,7 @@ class ThoiKhoaBieu {
       const MaGiaoVien = gvRows[0]?.MaGiaoVien;
       if (!MaGiaoVien) continue;
 
+      // Xoá trước khi thêm
       await db.execute(`
         DELETE FROM ThoiKhoaBieu
         WHERE MaLop=? AND LoaiTKB=? AND Thu=? AND TietHoc=? AND KyHoc=? AND NamHoc=?
