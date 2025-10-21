@@ -129,26 +129,34 @@ class ThoiKhoaBieuController {
       res.status(500).json({ error:'Lỗi khi reset tuần' });
     }
   }
-async deleteCell(req, res) {
-  try {
-    const { MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc } = req.body;
-    const result = await ThoiKhoaBieu.deleteCell(MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc);
 
-    if (!result.affectedRows || result.affectedRows === 0) {
-      return res.json({ error: 0, message: 'Không có dữ liệu để xóa, cell đã trống' }); // Không coi là lỗi
+  // ✅ Hàm xóa cell – cập nhật lại đúng cách
+  async deleteCell(req, res) {
+    try {
+      const { MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc, TenMonHoc } = req.body;
+      const result = await ThoiKhoaBieu.deleteCell(MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc);
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        return res.json({ error: 0, message: 'Không có dữ liệu để xóa, cell đã trống' });
+      }
+
+      // 🔹 Sau khi xóa, đếm lại tổng số tiết của môn đó trong DB
+      const SoTietTuan = TenMonHoc
+        ? await ThoiKhoaBieu.countSubjectWeeklyInDB(MaLop, NamHoc, KyHoc, TenMonHoc, LoaiTKB)
+        : 0;
+
+      res.json({ error: 0, message: 'Đã xóa môn học khỏi CSDL', SoTietTuan });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 1, message: 'Lỗi khi xóa cell' });
     }
-
-    res.json({ error: 0, message: 'Đã xóa môn học khỏi CSDL' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 1, message: 'Lỗi khi xóa cell' });
   }
-}
+// ✅ Chỉ đếm số tiết đang hiển thị trong UI (không cộng DB)
 async checkSubjectLimit(req, res) {
   try {
-    const { MaLop, NamHoc, KyHoc, LoaiTKB, cells } = req.body;
+    const { cells } = req.body;
 
-    // Gom nhóm theo môn học
+    // 🔹 Gom nhóm các cell theo môn học (chỉ trong UI)
     const cellCount = {};
     for (const c of cells) {
       if (!c.TenMonHoc) continue;
@@ -157,24 +165,10 @@ async checkSubjectLimit(req, res) {
 
     const warnings = [];
 
-    // Kiểm tra từng môn
-    for (const [TenMonHoc, countInSelection] of Object.entries(cellCount)) {
-      const limit = await ThoiKhoaBieu.getSubjectWeeklyLimit(TenMonHoc);
-      const countInDB = await ThoiKhoaBieu.countSubjectWeeklyInDB(
-        MaLop, NamHoc, KyHoc, TenMonHoc, LoaiTKB
-      );
-
-      const total = countInSelection + countInDB;
-
-      if (total > limit) {
-        warnings.push({
-          TenMonHoc,
-          SoTietTrongDB: countInDB,
-          SoTietDangChon: countInSelection,
-          Tong: total,
-          GioiHan: limit
-        });
-      }
+    // 🔹 Lấy giới hạn từng môn và tạo danh sách cảnh báo
+    for (const [TenMonHoc, soHienTai] of Object.entries(cellCount)) {
+      const soToiDa = await ThoiKhoaBieu.getSubjectWeeklyLimit(TenMonHoc);
+      warnings.push({ TenMonHoc, soHienTai, soToiDa });
     }
 
     return res.json({
@@ -186,7 +180,7 @@ async checkSubjectLimit(req, res) {
     return res.status(500).json({ status: 'error', message: err.message });
   }
 }
-
 }
+
 
 module.exports = new ThoiKhoaBieuController();

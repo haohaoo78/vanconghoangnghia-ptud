@@ -180,7 +180,7 @@ function attachSubjectChangeEvents() {
       const div = document.getElementById(`teacher-${Thu}-${Tiet}`);
       const f = FilterForm;
 
-      // ===== Xóa cell nếu rỗng =====
+      // ===== Nếu xóa môn khỏi cell =====
       if (!TenMonHoc) {
         try {
           await fetch('/api/thoikhoabieu/deleteCell', {
@@ -201,12 +201,12 @@ function attachSubjectChangeEvents() {
         }
         div.innerText = '';
         div.classList.remove('missing');
-        this.value = '';
         this.classList.remove('warning');
+        await updateSubjectIndicators(); // 🔹 Gọi cập nhật tổng số tiết
         return;
       }
 
-      // ===== Lấy giáo viên =====
+      // ===== Lấy giáo viên cho môn =====
       try {
         const resGV = await fetch('/api/thoikhoabieu/getTeacher', {
           method: 'POST',
@@ -221,46 +221,70 @@ function attachSubjectChangeEvents() {
         div.classList.add('missing');
       }
 
-      // ===== Kiểm tra số tiết =====
-      try {
-        // Lấy tất cả cell hiện đang chọn
-        const cells = Array.from(document.querySelectorAll('.subject-select')).map(s => ({
-          TenMonHoc: s.value,
-          Thu: s.dataset.thu,
-          TietHoc: s.dataset.tiet
-        }));
-
-        // Gọi API checkSubjectLimit
-        const resCheck = await fetch('/api/thoikhoabieu/checkSubjectLimit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            MaLop: f.MaLop.value,
-            NamHoc: f.NamHoc.value,
-            KyHoc: f.KyHoc.value,
-            LoaiTKB: f.LoaiTKB.value,
-            cells
-          })
-        });
-        const dataCheck = await resCheck.json();
-
-        // Xóa cảnh báo cũ cell này
-        this.classList.remove('warning');
-        div.innerText = div.innerText.replace(/ ⚠️ Tăng tiết/g, '');
-
-        // Nếu cell vừa chọn đang vượt số tiết
-        if (dataCheck.warnings.find(w => w.TenMonHoc === TenMonHoc)) {
-          this.classList.add('warning');
-          div.innerText += ' ⚠️ Tăng tiết';
-        }
-      } catch (err) {
-        console.error('Lỗi khi kiểm tra số tiết', err);
-      }
+      // ===== Cập nhật lại toàn bộ chỉ số tiết =====
+      await updateSubjectIndicators(); // 🔹 Gọi cập nhật tổng số tiết
     });
   });
 }
 
+// ========================
+// CẬP NHẬT CHỈ SỐ TIẾT CHO TẤT CẢ CELL
+// ========================
+async function updateSubjectIndicators() {
+  const f = FilterForm;
+  const selects = document.querySelectorAll('.subject-select');
+  const cells = Array.from(selects).map(s => ({
+    TenMonHoc: s.value,
+    Thu: s.dataset.thu,
+    TietHoc: s.dataset.tiet
+  }));
 
+  try {
+    const res = await fetch('/api/thoikhoabieu/checkSubjectLimit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        MaLop: f.MaLop.value,
+        NamHoc: f.NamHoc.value,
+        KyHoc: f.KyHoc.value,
+        LoaiTKB: f.LoaiTKB.value,
+        cells
+      })
+    });
+
+    const data = await res.json();
+    const warnings = data?.warnings || [];
+
+    // 🔹 Dọn sạch hiển thị cũ
+    selects.forEach(sel => {
+      const Thu = sel.dataset.thu;
+      const Tiet = sel.dataset.tiet;
+      const div = document.getElementById(`teacher-${Thu}-${Tiet}`);
+      sel.classList.remove('warning');
+      if (div && div.innerText) {
+        div.innerText = div.innerText.replace(/\s*\(\d+\/\d+\)\s*$/, '');
+      }
+    });
+
+    // 🔹 Hiển thị (x/x) và tô đỏ nếu vượt
+    warnings.forEach(info => {
+      const { TenMonHoc, soHienTai, soToiDa } = info;
+      document.querySelectorAll('.subject-select').forEach(sel => {
+        if (sel.value === TenMonHoc) {
+          const Thu = sel.dataset.thu;
+          const Tiet = sel.dataset.tiet;
+          const div = document.getElementById(`teacher-${Thu}-${Tiet}`);
+          const teacherName = (div.innerText || 'Chưa phân công').replace(/\s*\(\d+\/\d+\)\s*$/, '');
+          div.innerText = `${teacherName} (${soHienTai}/${soToiDa})`;
+          if (soHienTai > soToiDa) sel.classList.add('warning');
+        }
+      });
+    });
+
+  } catch (err) {
+    console.error('Lỗi khi cập nhật số tiết:', err);
+  }
+}
 
 
 

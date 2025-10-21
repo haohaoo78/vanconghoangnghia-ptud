@@ -149,7 +149,6 @@ class ThoiKhoaBieu {
       DELETE FROM ThoiKhoaBieu WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND LoaiTKB=?
     `, [MaLop, NamHoc, KyHoc, LoaiTKB]);
   }
-// Lấy số tiết / tuần của môn học
 static async getSubjectWeeklyLimit(TenMonHoc) {
   const [rows] = await db.execute(`
     SELECT SoTiet FROM MonHoc
@@ -162,17 +161,9 @@ static async countSubjectWeeklyInDB(MaLop, NamHoc, KyHoc, TenMonHoc, LoaiTKB) {
   let query = `
     SELECT COUNT(*) AS SoTietTuan
     FROM ThoiKhoaBieu
-    WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND TenMonHoc=?
+    WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND TenMonHoc=? AND LoaiTKB=?
   `;
-  const params = [MaLop, NamHoc, KyHoc, TenMonHoc];
-
-  if (LoaiTKB === 'Chuan') {
-    query += ' AND LoaiTKB="Chuan"';
-  } else {
-    query += ' AND LoaiTKB=?';
-    params.push(LoaiTKB);
-  }
-
+  const params = [MaLop, NamHoc, KyHoc, TenMonHoc, LoaiTKB];
   const [rows] = await db.execute(query, params);
   return rows[0]?.SoTietTuan || 0;
 }
