@@ -37,13 +37,25 @@ function showMessage(message, type = "info") {
 KhoiSelect.addEventListener('change', async () => {
   LopSelect.innerHTML = '<option value="">-- Chọn lớp --</option>';
   if (!KhoiSelect.value) return;
-  const res = await fetch('/api/thoikhoabieu/getLopTheoKhoi', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ MaKhoi: KhoiSelect.value })
-  });
-  const data = await res.json();
-  LopSelect.innerHTML = data.map(l => `<option value="${l.MaLop}">${l.TenLop}</option>`).join('');
+
+  try {
+    const res = await fetch('/api/thoikhoabieu/getLopTheoKhoi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ MaKhoi: KhoiSelect.value })
+    });
+    const data = await res.json();
+    const options = data.map(l => `<option value="${l.MaLop}">${l.TenLop}</option>`).join('');
+    LopSelect.innerHTML = '<option value="">-- Chọn lớp --</option>' + options;
+
+    if (data.length === 0) {
+      showMessage('Không có lớp nào trong khối này.', 'warn');
+    }
+
+  } catch (err) {
+    showMessage('Lỗi khi tải danh sách lớp.', 'error');
+    console.error(err);
+  }
 });
 
 // ========================
