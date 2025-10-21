@@ -170,10 +170,13 @@ function createRow(tt, p) {
   let row = `<tr><td>${p}</td>`;
   for (let d = 2; d <= 8; d++) {
     const cell = tt[d]?.[p] || {};
+    // 🔹 Lọc bỏ môn EMPTY_WEEK
+    const validSubjects = subjectsByClass.filter(s => s.TenMonHoc !== 'EMPTY_WEEK');
+
     row += `<td>
       <select class="subject-select" data-thu="${d}" data-tiet="${p}">
         <option value="">-- Môn học --</option>
-        ${subjectsByClass.map(s => `<option value="${s.TenMonHoc}" ${cell.subject === s.TenMonHoc ? 'selected' : ''}>${s.TenMonHoc}</option>`).join('')}
+        ${validSubjects.map(s => `<option value="${s.TenMonHoc}" ${cell.subject === s.TenMonHoc ? 'selected' : ''}>${s.TenMonHoc}</option>`).join('')}
       </select>
       <div class="teacher" id="teacher-${d}-${p}">${cell.teacher || ''}</div>
     </td>`;
