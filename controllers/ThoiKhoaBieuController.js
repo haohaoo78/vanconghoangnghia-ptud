@@ -144,52 +144,48 @@ async deleteCell(req, res) {
     res.status(500).json({ error: 1, message: 'Lỗi khi xóa cell' });
   }
 }
-
 async checkSubjectLimit(req, res) {
   try {
-    const { MaLop, NamHoc, KyHoc, LoaiTKB, TenMonHoc, Khoi, NamHocStart } = req.body;
+    const { MaLop, NamHoc, KyHoc, LoaiTKB, cells } = req.body;
 
-    if (!TenMonHoc || !MaLop || !NamHoc || !KyHoc || !LoaiTKB || !Khoi || !NamHocStart) {
-      return res.status(400).json({ error: 1, message: 'Thiếu thông tin để kiểm tra' });
+    // Gom nhóm theo môn học
+    const cellCount = {};
+    for (const c of cells) {
+      if (!c.TenMonHoc) continue;
+      cellCount[c.TenMonHoc] = (cellCount[c.TenMonHoc] || 0) + 1;
     }
 
-    // Tính ngày Thứ 2 đầu tuần dựa trên NamHocStart và LoaiTKB
-    let weekNumber = 1;
-    if (LoaiTKB.startsWith('Tuan')) {
-      weekNumber = parseInt(LoaiTKB.replace('Tuan', ''), 10) || 1;
-    }
-    const weekStartDate = (() => {
-      const base = new Date(NamHocStart);
-      if (isNaN(base)) return new Date('2025-08-01');
-      const d = base.getDay();
-      const offset = d === 1 ? 0 : d === 0 ? 1 : 8 - d;
-      base.setDate(base.getDate() + offset + (weekNumber - 1) * 7);
-      return base;
-    })();
+    const warnings = [];
 
-    // Kiểm tra số tiết đã có trong tuần
-    const currentCount = await ThoiKhoaBieu.countSubjectWeek(
-      MaLop, NamHoc, KyHoc, LoaiTKB, TenMonHoc, undefined, weekStartDate
-    );
+    // Kiểm tra từng môn
+    for (const [TenMonHoc, countInSelection] of Object.entries(cellCount)) {
+      const limit = await ThoiKhoaBieu.getSubjectWeeklyLimit(TenMonHoc);
+      const countInDB = await ThoiKhoaBieu.countSubjectWeeklyInDB(
+        MaLop, NamHoc, KyHoc, TenMonHoc, LoaiTKB
+      );
 
-    // Lấy số tiết tối đa theo khối
-    const maxPerWeek = await ThoiKhoaBieu.getSubjectLimitByKhoi(TenMonHoc, Khoi);
+      const total = countInSelection + countInDB;
 
-    if (currentCount >= maxPerWeek) {
-      return res.json({
-        error: 1,
-        message: `Môn ${TenMonHoc} đã đủ ${maxPerWeek} tiết/tuần cho khối ${Khoi}`
-      });
+      if (total > limit) {
+        warnings.push({
+          TenMonHoc,
+          SoTietTrongDB: countInDB,
+          SoTietDangChon: countInSelection,
+          Tong: total,
+          GioiHan: limit
+        });
+      }
     }
 
-    res.json({ error: 0, message: 'Có thể thêm môn học' });
-
+    return res.json({
+      status: 'ok',
+      warnings
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 1, message: 'Lỗi khi kiểm tra số tiết' });
+    console.error("Lỗi checkSubjectLimit:", err);
+    return res.status(500).json({ status: 'error', message: err.message });
   }
 }
-
 
 }
 

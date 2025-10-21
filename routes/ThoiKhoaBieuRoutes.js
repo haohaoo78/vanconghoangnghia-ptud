@@ -13,6 +13,7 @@ router.post('/getSubjectsByClass', (req, res) => ThoiKhoaBieuController.getSubje
 router.post('/getLopTheoKhoi', (req, res) => ThoiKhoaBieuController.getLopTheoKhoi(req, res));
 router.post('/deleteCell', (req, res) => ThoiKhoaBieuController.deleteCell(req, res));
 router.post('/checkSubjectLimit', (req, res) => ThoiKhoaBieuController.checkSubjectLimit(req, res));
+router.post('/check-so-tiet', ThoiKhoaBieuController.checkSubjectLimit);
 
 
 module.exports = router;

@@ -149,40 +149,33 @@ class ThoiKhoaBieu {
       DELETE FROM ThoiKhoaBieu WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND LoaiTKB=?
     `, [MaLop, NamHoc, KyHoc, LoaiTKB]);
   }
-
-  // ====================
-  // Kiểm tra số tiết
-  // ====================
-static async countSubjectWeek(MaLop, NamHoc, KyHoc, LoaiTKB, TenMonHoc, weekStartDate) {
-  if (!weekStartDate) weekStartDate = new Date('2025-08-01');
-
-  const start = new Date(weekStartDate);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6); // CN
-
-  // Chuyển sang format YYYY-MM-DD để so sánh trong SQL
-  const startStr = start.toISOString().split('T')[0];
-  const endStr = end.toISOString().split('T')[0];
-
+// Lấy số tiết / tuần của môn học
+static async getSubjectWeeklyLimit(TenMonHoc) {
   const [rows] = await db.execute(`
-    SELECT COUNT(*) AS SoTiet
-    FROM ThoiKhoaBieu
-    WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND LoaiTKB=? AND TenMonHoc=? 
-      AND Ngay BETWEEN ? AND ?
-  `, [MaLop, NamHoc, KyHoc, LoaiTKB, TenMonHoc, startStr, endStr]);
-
+    SELECT SoTiet FROM MonHoc
+    WHERE TenMonHoc=? AND TrangThai='Đang dạy' LIMIT 1
+  `, [TenMonHoc]);
   return rows[0]?.SoTiet || 0;
 }
 
-  static async getSubjectLimitByKhoi(TenMonHoc, Khoi) {
-    const [rows] = await db.execute(`
-      SELECT SoTiet
-      FROM MonHoc
-      WHERE TenMonHoc=? AND Khoi=? AND TrangThai='Đang dạy'
-      LIMIT 1
-    `, [TenMonHoc.trim(), Khoi.trim()]);
-    return rows[0]?.SoTiet || 0;
+static async countSubjectWeeklyInDB(MaLop, NamHoc, KyHoc, TenMonHoc, LoaiTKB) {
+  let query = `
+    SELECT COUNT(*) AS SoTietTuan
+    FROM ThoiKhoaBieu
+    WHERE MaLop=? AND NamHoc=? AND KyHoc=? AND TenMonHoc=?
+  `;
+  const params = [MaLop, NamHoc, KyHoc, TenMonHoc];
+
+  if (LoaiTKB === 'Chuan') {
+    query += ' AND LoaiTKB="Chuan"';
+  } else {
+    query += ' AND LoaiTKB=?';
+    params.push(LoaiTKB);
   }
+
+  const [rows] = await db.execute(query, params);
+  return rows[0]?.SoTietTuan || 0;
 }
 
+}
 module.exports = ThoiKhoaBieu;

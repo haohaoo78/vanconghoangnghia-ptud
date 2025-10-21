@@ -180,11 +180,10 @@ function attachSubjectChangeEvents() {
       const div = document.getElementById(`teacher-${Thu}-${Tiet}`);
       const f = FilterForm;
 
-      
-
-      if (!TenMonHoc) { // Xóa cell
+      // ===== Xóa cell nếu rỗng =====
+      if (!TenMonHoc) {
         try {
-          const resDel = await fetch('/api/thoikhoabieu/deleteCell', {
+          await fetch('/api/thoikhoabieu/deleteCell', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -192,21 +191,46 @@ function attachSubjectChangeEvents() {
               NamHoc: f.NamHoc.value,
               KyHoc: f.KyHoc.value,
               LoaiTKB: f.LoaiTKB.value,
-              Thu: Thu === "8" ? "CN" : Thu, // Chủ nhật gửi "CN" cho backend
+              Thu: Thu === "8" ? "CN" : Thu,
               TietHoc: Tiet
             })
           });
-          const result = await resDel.json();
-          showMessage(result.message || 'Đã xóa tiết.', 'success');
+          showMessage('Đã xóa tiết.', 'success');
         } catch {
           showMessage('Lỗi khi xóa tiết', 'error');
         }
         div.innerText = '';
         div.classList.remove('missing');
         this.value = '';
+        this.classList.remove('warning');
         return;
       }
-    try {
+
+      // ===== Lấy giáo viên =====
+      try {
+        const resGV = await fetch('/api/thoikhoabieu/getTeacher', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ MaLop: f.MaLop.value, TenMonHoc })
+        });
+        const dataGV = await resGV.json();
+        div.innerText = dataGV?.TenGiaoVien || 'Chưa phân công';
+        div.classList.toggle('missing', !dataGV?.TenGiaoVien);
+      } catch {
+        div.innerText = 'Lỗi lấy GV';
+        div.classList.add('missing');
+      }
+
+      // ===== Kiểm tra số tiết =====
+      try {
+        // Lấy tất cả cell hiện đang chọn
+        const cells = Array.from(document.querySelectorAll('.subject-select')).map(s => ({
+          TenMonHoc: s.value,
+          Thu: s.dataset.thu,
+          TietHoc: s.dataset.tiet
+        }));
+
+        // Gọi API checkSubjectLimit
         const resCheck = await fetch('/api/thoikhoabieu/checkSubjectLimit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -215,45 +239,29 @@ function attachSubjectChangeEvents() {
             NamHoc: f.NamHoc.value,
             KyHoc: f.KyHoc.value,
             LoaiTKB: f.LoaiTKB.value,
-            TenMonHoc,
-            Khoi: f.Khoi.value
+            cells
           })
         });
         const dataCheck = await resCheck.json();
-        if (dataCheck.error) {
-          showMessage(dataCheck.message, 'error');
-          this.value = '';
-          div.innerText = '';
-          div.classList.remove('missing');
-          return;
+
+        // Xóa cảnh báo cũ cell này
+        this.classList.remove('warning');
+        div.innerText = div.innerText.replace(/ ⚠️ Tăng tiết/g, '');
+
+        // Nếu cell vừa chọn đang vượt số tiết
+        if (dataCheck.warnings.find(w => w.TenMonHoc === TenMonHoc)) {
+          this.classList.add('warning');
+          div.innerText += ' ⚠️ Tăng tiết';
         }
       } catch (err) {
-        showMessage('Lỗi kiểm tra số tiết', 'error');
-        return;
-      }
-
-      // Lấy giáo viên
-      try {
-        const res = await fetch('/api/thoikhoabieu/getTeacher', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ MaLop: f.MaLop.value, TenMonHoc })
-        });
-        const data = await res.json();
-        if (data?.TenGiaoVien) {
-          div.innerText = data.TenGiaoVien;
-          div.classList.remove('missing');
-        } else {
-          div.innerText = 'Chưa phân công';
-          div.classList.add('missing');
-        }
-      } catch {
-        div.innerText = 'Lỗi lấy GV';
-        div.classList.add('missing');
+        console.error('Lỗi khi kiểm tra số tiết', err);
       }
     });
   });
 }
+
+
+
 
 
 // ========================
