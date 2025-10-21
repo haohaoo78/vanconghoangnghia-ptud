@@ -98,50 +98,105 @@ class ThoiKhoaBieu {
     `, [MaLop, NamHoc, KyHoc, LoaiTKB, Thu, TietHoc]);
     return result;
   }
+// ====================
+// Cập nhật nhiều cell + tuần rỗng
+// ====================
+static async updateMultiple(cells, startDate) {
+  const baseDate = new Date(startDate);
+  if (isNaN(baseDate.getTime())) throw new Error('Ngày bắt đầu học kỳ không hợp lệ');
 
-  static async updateMultiple(cells, startDate) {
-    const baseDate = new Date(startDate);
-    if (isNaN(baseDate.getTime())) throw new Error('Ngày bắt đầu học kỳ không hợp lệ');
+  // Tìm Thứ 2 đầu tiên
+  const firstMonday = new Date(baseDate);
+  const day = firstMonday.getDay(); // 0=CN, 1=T2
+  const offset = day === 1 ? 0 : day === 0 ? 1 : 8 - day;
+  firstMonday.setDate(firstMonday.getDate() + offset);
 
-    // Tìm Thứ 2 đầu tiên
-    const firstMonday = new Date(baseDate);
-    const day = firstMonday.getDay(); // 0=CN, 1=T2
-    const offset = day === 1 ? 0 : day === 0 ? 1 : 8 - day;
-    firstMonday.setDate(firstMonday.getDate() + offset);
+  // Lọc cell có môn học
+  const validCells = cells.filter(c => c.TenMonHoc && c.TenMonHoc.trim() !== '');
 
-    const validCells = cells.filter(c => c.TenMonHoc && c.TenMonHoc.trim() !== '');
-    for (const cell of validCells) {
-      const { MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc } = cell;
-      const weekNumber = LoaiTKB.startsWith('Tuan') ? parseInt(LoaiTKB.replace('Tuan', '')) : 1;
+  // Nếu không có cell nào, tạo 1 dòng ảo
+  if (validCells.length === 0 && cells.length > 0) {
+    const { MaLop, LoaiTKB, NamHoc, KyHoc } = cells[0];
 
-      const thuOffset = Thu === 'CN' ? 6 : parseInt(Thu) - 2;
-      const ngayObj = new Date(firstMonday);
-      ngayObj.setDate(firstMonday.getDate() + (weekNumber - 1) * 7 + thuOffset);
+    await db.execute(`
+      DELETE FROM ThoiKhoaBieu
+      WHERE MaLop=? AND LoaiTKB=? AND KyHoc=? AND NamHoc=?
+    `, [MaLop, LoaiTKB, KyHoc, NamHoc]);
 
-      const Ngay = new Date(ngayObj.getTime() - ngayObj.getTimezoneOffset() * 60000)
-        .toISOString().split('T')[0];
+    await db.execute(`
+      INSERT INTO ThoiKhoaBieu
+        (LoaiTKB, MaLop, TenMonHoc, TietHoc, KyHoc, Thu, Ngay, MaGiaoVien, NamHoc)
+      VALUES (?,?,?,?,?,?,?,?,?)
+      ON DUPLICATE KEY UPDATE
+        TenMonHoc = VALUES(TenMonHoc)
+    `, [LoaiTKB, MaLop, 'EMPTY_WEEK', 1, KyHoc, 2, '2111-01-01', 'GV000', NamHoc]);
 
-      const [gvRows] = await db.execute(`
-        SELECT g.MaGiaoVien
-        FROM GVBoMon gbm
-        JOIN GiaoVien g ON gbm.MaGVBM = g.MaGiaoVien
-        WHERE gbm.MaLop=? AND g.TenMonHoc=? LIMIT 1
-      `, [MaLop, TenMonHoc]);
-      const MaGiaoVien = gvRows[0]?.MaGiaoVien;
-      if (!MaGiaoVien) continue;
-
-      await db.execute(`
-        DELETE FROM ThoiKhoaBieu
-        WHERE MaLop=? AND LoaiTKB=? AND Thu=? AND TietHoc=? AND KyHoc=? AND NamHoc=?
-      `, [MaLop, LoaiTKB, Thu, TietHoc, KyHoc, NamHoc]);
-
-      await db.execute(`
-        INSERT INTO ThoiKhoaBieu
-          (LoaiTKB, MaLop, TenMonHoc, TietHoc, KyHoc, Thu, Ngay, MaGiaoVien, NamHoc)
-        VALUES (?,?,?,?,?,?,?,?,?)
-      `, [LoaiTKB, MaLop, TenMonHoc, TietHoc, KyHoc, Thu, Ngay, MaGiaoVien, NamHoc]);
-    }
+    return;
   }
+
+  for (const cell of validCells) {
+    const { MaLop, LoaiTKB, NamHoc, KyHoc, Thu, TietHoc, TenMonHoc } = cell;
+
+    const weekNumber = LoaiTKB?.startsWith('Tuan') ? parseInt(LoaiTKB.replace('Tuan', '')) : 1;
+    const thuOffset = Thu === 'CN' ? 6 : parseInt(Thu) - 2;
+    const ngayObj = new Date(firstMonday);
+    ngayObj.setDate(firstMonday.getDate() + (weekNumber - 1) * 7 + thuOffset);
+    const Ngay = new Date(ngayObj.getTime() - ngayObj.getTimezoneOffset() * 60000)
+      .toISOString().split('T')[0];
+
+    // Lấy MaGiaoVien
+    const [gvRows] = await db.execute(`
+      SELECT g.MaGiaoVien
+      FROM GVBoMon gbm
+      JOIN GiaoVien g ON gbm.MaGVBM = g.MaGiaoVien
+      WHERE gbm.MaLop=? AND g.TenMonHoc=? LIMIT 1
+    `, [MaLop, TenMonHoc]);
+    const MaGiaoVien = gvRows[0]?.MaGiaoVien || null;
+
+    // 🔹 Dùng INSERT ... ON DUPLICATE KEY UPDATE để tránh lỗi duplicate
+    await db.execute(`
+      INSERT INTO ThoiKhoaBieu
+        (LoaiTKB, MaLop, TenMonHoc, TietHoc, KyHoc, Thu, Ngay, MaGiaoVien, NamHoc)
+      VALUES (?,?,?,?,?,?,?,?,?)
+      ON DUPLICATE KEY UPDATE
+        TenMonHoc = VALUES(TenMonHoc),
+        MaGiaoVien = VALUES(MaGiaoVien),
+        Ngay = VALUES(Ngay)
+    `, [LoaiTKB, MaLop, TenMonHoc, TietHoc, KyHoc, Thu, Ngay, MaGiaoVien, NamHoc]);
+  }
+}
+
+// ====================
+// Lấy grid TKB (bỏ dòng ảo)
+// ====================
+static async getGrid(MaLop, LoaiTKB, NamHoc, KyHoc) {
+  let [rows] = await db.execute(`
+    SELECT t.Thu, t.TietHoc, t.TenMonHoc, g.TenGiaoVien
+    FROM ThoiKhoaBieu t
+    JOIN GiaoVien g ON t.MaGiaoVien = g.MaGiaoVien
+    WHERE t.MaLop=? AND t.NamHoc=? AND t.KyHoc=? AND t.LoaiTKB=?
+    ORDER BY Thu, TietHoc
+  `, [MaLop, NamHoc, KyHoc, LoaiTKB]);
+
+  if (rows.length === 0 && LoaiTKB !== 'Chuan') {
+    [rows] = await db.execute(`
+      SELECT t.Thu, t.TietHoc, t.TenMonHoc, g.TenGiaoVien
+      FROM ThoiKhoaBieu t
+      JOIN GiaoVien g ON t.MaGiaoVien = g.MaGiaoVien
+      WHERE t.MaLop=? AND t.NamHoc=? AND t.KyHoc=? AND t.LoaiTKB='Chuan'
+      ORDER BY Thu, TietHoc
+    `, [MaLop, NamHoc, KyHoc]);
+  }
+
+  const grid = {};
+  rows.forEach(r => {
+    if (r.TenMonHoc === 'EMPTY_WEEK') return; // bỏ qua dòng ảo
+    if (!grid[r.Thu]) grid[r.Thu] = {};
+    grid[r.Thu][r.TietHoc] = { subject: r.TenMonHoc, teacher: r.TenGiaoVien };
+  });
+  return grid;
+}
+
 
   static async resetWeek(MaLop, NamHoc, KyHoc, LoaiTKB) {
     if (LoaiTKB === 'Chuan') return;

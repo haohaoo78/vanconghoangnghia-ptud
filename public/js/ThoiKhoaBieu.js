@@ -1,3 +1,4 @@
+
 // ========================
 // BIẾN DOM CHÍNH
 // ========================
@@ -298,11 +299,6 @@ async function updateSubjectIndicators() {
   }
 }
 
-
-
-// ========================
-// LƯU TKB + XÓA DÒNG TRỐNG + GIÃN 3 GIÂY TRƯỚC LOAD LẠI
-// ========================
 document.getElementById('save-timetable').addEventListener('click', async () => {
   const f = FilterForm;
   const timetableData = [];
@@ -318,6 +314,7 @@ document.getElementById('save-timetable').addEventListener('click', async () => 
     const Tiet = sel.dataset.tiet;
     const TenMonHoc = sel.value;
 
+    // 🔹 Giữ nguyên cell hiện có
     if (TenMonHoc) {
       timetableData.push({
         MaLop: f.MaLop.value,
@@ -328,27 +325,39 @@ document.getElementById('save-timetable').addEventListener('click', async () => 
         TietHoc: Tiet,
         TenMonHoc
       });
+    } else {
+      // 🔹 Tạo cell ảo để server nhận, nhưng không thay đổi thứ tự
+      timetableData.push({
+        MaLop: f.MaLop.value,
+        NamHoc: f.NamHoc.value,
+        KyHoc: f.KyHoc.value,
+        LoaiTKB: f.LoaiTKB.value,
+        Thu,
+        TietHoc: Tiet,
+        TenMonHoc: '' // cell trống
+      });
     }
   });
 
-  if (!timetableData.length) { 
-    showMessage('Không có dữ liệu để lưu.', 'error'); 
-    return; 
-  }
+  try {
+    const res = await fetch('/api/thoikhoabieu/saveAll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timetable: timetableData, selectedNamHocStart: namHocStart })
+    });
+    const result = await res.json();
 
-  const res = await fetch('/api/thoikhoabieu/saveAll', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ timetable: timetableData, selectedNamHocStart: namHocStart })
-  });
-  const result = await res.json();
-
-  if (result.error) showMessage('Lưu thất bại.', 'error');
-  else {
-    showMessage('Lưu TKB thành công.', 'success');
-    setTimeout(() => loadTKB(), 3000); // giãn 3s trước load lại
+    if (result.error) showMessage('Lưu thất bại.', 'error');
+    else {
+      showMessage('Lưu TKB thành công.', 'success');
+      setTimeout(() => loadTKB(), 3000);
+    }
+  } catch (err) {
+    console.error(err);
+    showMessage('Lỗi khi lưu TKB.', 'error');
   }
 });
+
 
 // ========================
 // RESET TKB
