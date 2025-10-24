@@ -1,9 +1,10 @@
 <aside class="sidebar">
   <ul class="sidebar-nav">
     <% if(user) { %>
-      <% if(user.role === 'Hiệu trưởng' || user.role === 'Giáo vụ') { %>
+      <% if(user.role === 'Hiệu trưởng') { %>
         <li><a href="#" data-page="phanconggiaovien">Phân công giáo viên</a></li>
         <li><a href="#" data-page="duyetyeucausuadiem">Duyệt yêu cầu sửa điểm</a></li>
+      <% } else if( user.role === 'Giáo vụ') { %>
         <li><a href="#" data-page="quanlylop">Quản lý lớp học</a></li>
         <li><a href="#" data-page="quanlygiaovien">Quản lý hồ sơ giáo viên</a></li>
         <li><a href="#" data-page="phandachocsinh">Phân chia học sinh</a></li>
