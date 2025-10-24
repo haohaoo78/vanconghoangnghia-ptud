@@ -35,4 +35,25 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     msgEl.classList.add('error');
     console.error(err);
   }
+
+  // Đăng xuất
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', async () => {
+    try {
+      const res = await fetch('/DangXuat', {
+        method: 'POST', // hoặc GET tùy route server
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      // Nếu server redirect, có thể dùng response.json() để thông báo
+      // Hoặc trực tiếp redirect
+      window.location.href = '/DangNhap';
+    } catch (err) {
+      alert('❌ Lỗi khi đăng xuất, thử lại.');
+      console.error(err);
+    }
+  });
+}
+
 });

@@ -1,12 +1,37 @@
 <aside class="sidebar">
   <ul class="sidebar-nav">
-    <li><a href="#" data-page="home">Trang chủ</a></li>
-    <li><a href="#" data-page="thoikhoabieu">Thời khóa biểu</a></li>
-    <li><a href="#" data-page="duyetyeucausuadiem">Duyệt yêu cầu sửa điểm</a></li>
-    <li><a href="#" data-page="settings">Cài đặt</a></li>
+    <% if(user) { %>
+      <% if(user.role === 'Hiệu trưởng' || user.role === 'Giáo vụ') { %>
+        <li><a href="#" data-page="phanconggiaovien">Phân công giáo viên</a></li>
+        <li><a href="#" data-page="duyetyeucausuadiem">Duyệt yêu cầu sửa điểm</a></li>
+        <li><a href="#" data-page="quanlylop">Quản lý lớp học</a></li>
+        <li><a href="#" data-page="quanlygiaovien">Quản lý hồ sơ giáo viên</a></li>
+        <li><a href="#" data-page="phandachocsinh">Phân chia học sinh</a></li>
+        <li><a href="#" data-page="thoikhoabieu">Lập thời khóa biểu</a></li>
+      <% } else if(user.role === 'Giáo viên') { %>
+        <li><a href="#" data-page="quanlydiem">Quản lý điểm môn học</a></li>
+        <li><a href="#" data-page="xetdiemrenluyen">Xét hạnh kiểm, học lực</a></li>
+        <li><a href="#" data-page="diemdanh">Điểm danh</a></li>
+        <li><a href="#" data-page="giaobaitap">Giao bài tập</a></li>
+        <li><a href="#" data-page="nhanxet">Nhận xét học sinh</a></li>
+      <% } else if(user.role === 'Phụ huynh') { %>
+        <li><a href="#" data-page="xemdiem">Xem điểm học kỳ, hạnh kiểm</a></li>
+        <li><a href="#" data-page="xinphep">Xin phép nghỉ học</a></li>
+        <li><a href="#" data-page="thanhtoan">Thanh toán học phí</a></li>
+        <li><a href="#" data-page="xacnhanthongtin">Chỉnh sửa thông tin con</a></li>
+      <% } else if(user.role === 'Học sinh' || user.role === 'Thí sinh') { %>
+        <li><a href="#" data-page="xembaitap">Xem bài tập</a></li>
+        <li><a href="#" data-page="dangkytuyensinh">Đăng ký tuyển sinh</a></li>
+        <li><a href="#" data-page="xemketqua">Xem kết quả</a></li>
+      <% } else if(user.role === 'Quản trị hệ thống') { %>
+        <li><a href="#" data-page="taotk">Tạo & phân quyền tài khoản</a></li>
+        <li><a href="#" data-page="quanlytruong">Quản lý trường</a></li>
+        <li><a href="#" data-page="quanlymonhoc">Quản lý môn học</a></li>
+      <% } %>
+    <% } %>
   </ul>
 
   <div class="sidebar-footer">
-    <button>Đăng xuất</button>
+    <button id="logout-btn">Đăng xuất</button>
   </div>
 </aside>
