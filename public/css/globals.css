@@ -228,8 +228,7 @@ main.container {
   border-right: 1px solid #c9d4e0;
   padding: 16px;
   font-family: "Segoe UI", sans-serif;
-  color: #1e3a8a;
-  min-height: 100vh; /* ✅ luôn kéo dài theo chiều cao màn hình */
+  color: #1e3a8a; /* ✅ luôn kéo dài theo chiều cao màn hình */
 }
 
 /* ===== Navigation ===== */
@@ -289,7 +288,7 @@ section.content {
   padding: 28px;
   background: #f9fbfd;
   height: auto;
-  min-height: 100vh; /* ✅ cùng cao với sidebar */
+   /* ✅ cùng cao với sidebar min-height: 100vh; */
 }
 
 /* ===== Responsive ===== */

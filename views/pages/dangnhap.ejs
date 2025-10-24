@@ -1,21 +1,34 @@
-<!-- views/pages/dangnhap.ejs -->
 <link rel="stylesheet" href="/css/DangNhap.css">
 
-<section class="login-content">
-  <h2>Đăng nhập hệ thống</h2>
+<section class="login-container">
+  <!-- Bên trái: thông tin / bài viết -->
+  <div class="info-side">
+    <h2>Chào mừng đến với hệ thống</h2>
+    <p>Hệ thống quản lý trực tuyến giúp bạn dễ dàng theo dõi và quản lý công việc hàng ngày.
+       Đăng nhập để trải nghiệm các tính năng tuyệt vời!</p>
+    <img src="/images/login-illustration.png" alt="Illustration" class="illustration">
+  </div>
 
-  <form id="login-form" action="/DangNhap" method="POST">
-    <label for="username">Tên tài khoản</label>
-    <input type="text" id="username" name="username" placeholder="Nhập tên tài khoản">
+  <!-- Bên phải: form đăng nhập -->
+  <div class="login-side">
+    <div class="login-content">
+      <h2>Đăng nhập hệ thống</h2>
+      <form id="login-form">
+        <label for="username">Tên tài khoản</label>
+        <input type="text" id="username" name="username" placeholder="Nhập tên tài khoản">
 
-    <label for="password">Mật khẩu</label>
-    <input type="password" id="password" name="password" placeholder="Nhập mật khẩu">
+        <label for="password">Mật khẩu</label>
+        <input type="password" id="password" name="password" placeholder="Nhập mật khẩu">
 
-    <button type="submit" class="btn login-btn">Đăng nhập</button>
-  </form>
-
-  <div class="links">
-    <a href="/DangKy">Đăng ký</a> | 
-    <a href="/QuenMatKhau">Quên mật khẩu?</a>
+        <button type="submit" class="btn login-btn">Đăng nhập</button>
+      </form>
+      <div class="links">
+        <a href="/DangKy">Đăng ký</a> | <a href="/QuenMatKhau">Quên mật khẩu?</a>
+      </div>
+      <div id="error-message" class="error"></div>
+    </div>
   </div>
 </section>
+
+<!-- ✅ Đặt script cuối trang để chắc chắn DOM đã load -->
+<script src="/js/DangNhap.js"></script>

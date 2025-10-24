@@ -10,7 +10,6 @@
 <%- include('partials/header') %>
 
 <main class="container">
-  <% if(user){ %>
     <!-- Sidebar -->
     <aside class="sidebar">
       <%- include('partials/sidebar') %>
@@ -21,17 +20,13 @@
       <% if(page === 'home'){ %>
         <h2>Trang Home</h2>
       <% } else { %>
-        <%- include('pages/' + page) %>
+        <%- include(`pages/${page}`) %>
       <% } %>
     </section>
-  <% } else { %>
-    <!-- Nếu chưa login, hiển thị login -->
-    <section id="main-content" class="content">
-      <%- include('pages/dangnhap') %>
-    </section>
-  <% } %>
+
 </main>
 
 <%- include('partials/footer') %>
+<script src="/js/1_main.js"></script>
 </body>
 </html>

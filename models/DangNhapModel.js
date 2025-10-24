@@ -1,28 +1,40 @@
 const db = require('../config/database');
-const bcrypt = require('bcrypt');
 
 class TaiKhoan {
-  static db = db;
-
-  // Hàm login
+  // 🔹 Hàm đăng nhập
   static async login(username, password) {
-    return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM TaiKhoan WHERE TenTaiKhoan = ?';
-      this.db.query(sql, [username], (err, results) => {
-        if (err) return reject(err);
-        if (results.length === 0) return resolve(null); // Không tìm thấy tài khoản
+    try {
+      const [rows] = await db.execute(
+        'SELECT * FROM TaiKhoan WHERE TenTaiKhoan = ? AND MatKhau = ?',
+        [username, password]
+      );
 
-        const user = results[0];
-        bcrypt.compare(password, user.MatKhau, (err, isMatch) => {
-          if (err) return reject(err);
-          if (!isMatch) return resolve(null); // Sai mật khẩu
+      // Nếu không tìm thấy tài khoản
+      if (rows.length === 0) return null;
 
-          // Loại bỏ mật khẩu trước khi trả về
-          const { MatKhau, ...userData } = user;
-          resolve(userData);
-        });
-      });
-    });
+      // Trả về thông tin người dùng đầu tiên
+      return rows[0];
+    } catch (error) {
+      console.error('❌ Lỗi trong TaiKhoan.login:', error);
+      throw error;
+    }
+  }
+
+  // 🔹 (Tuỳ chọn) Kiểm tra tồn tại tài khoản
+  static async exists(username) {
+    const [rows] = await db.execute(
+      'SELECT COUNT(*) AS count FROM TaiKhoan WHERE TenTaiKhoan = ?',
+      [username]
+    );
+    return rows[0].count > 0;
+  }
+
+  // 🔹 (Tuỳ chọn) Tạo tài khoản mới
+  static async create(username, password, role = 'User') {
+    await db.execute(
+      'INSERT INTO TaiKhoan (TenTaiKhoan, MatKhau, VaiTro) VALUES (?, ?, ?)',
+      [username, password, role]
+    );
   }
 }
 
