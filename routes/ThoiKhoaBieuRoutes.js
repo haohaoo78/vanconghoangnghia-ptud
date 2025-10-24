@@ -1,19 +1,16 @@
-// routes/ThoiKhoaBieuRouter.js
 const express = require('express');
 const ThoiKhoaBieuController = require('../controllers/ThoiKhoaBieuController');
 const router = express.Router();
 
-router.get('/render', (req, res) => ThoiKhoaBieuController.renderPage(req, res));
-router.post('/getAll', (req, res) => ThoiKhoaBieuController.getAll(req, res));
-router.post('/getKyHocList', (req, res) => ThoiKhoaBieuController.getKyHocList(req, res));
-router.post('/getTeacher', (req, res) => ThoiKhoaBieuController.getTeacher(req, res));
-router.post('/saveAll', (req, res) => ThoiKhoaBieuController.saveAll(req, res));
-router.post('/resetWeek', (req, res) => ThoiKhoaBieuController.resetWeek(req, res));
-router.post('/getSubjectsByClass', (req, res) => ThoiKhoaBieuController.getSubjectsByClass(req, res));
-router.post('/getLopTheoKhoi', (req, res) => ThoiKhoaBieuController.getLopTheoKhoi(req, res));
-router.post('/deleteCell', (req, res) => ThoiKhoaBieuController.deleteCell(req, res));
-router.post('/checkSubjectLimit', (req, res) => ThoiKhoaBieuController.checkSubjectLimit(req, res));
-router.post('/check-so-tiet', ThoiKhoaBieuController.checkSubjectLimit);
-
+router.get('/render', ThoiKhoaBieuController.renderPage);
+router.post('/getAll', ThoiKhoaBieuController.getAll);
+router.post('/getKyHocList', ThoiKhoaBieuController.getKyHocList);
+router.post('/getTeacher', ThoiKhoaBieuController.getTeacher);
+router.post('/saveAll', ThoiKhoaBieuController.saveAll);
+router.post('/resetWeek', ThoiKhoaBieuController.resetWeek);
+router.post('/getSubjectsByClass', ThoiKhoaBieuController.getSubjectsByClass);
+router.post('/getLopTheoKhoi', ThoiKhoaBieuController.getLopTheoKhoi);
+router.post('/deleteCell', ThoiKhoaBieuController.deleteCell);
+router.post('/checkSubjectLimit', ThoiKhoaBieuController.checkSubjectLimit);
 
 module.exports = router;

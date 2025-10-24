@@ -15,7 +15,7 @@ class ThoiKhoaBieuController {
       const selectedKyHoc = kyHocList[0] || '';
       const selectedNamHocStart = kyHocListObj[0]?.NgayBatDau || '2025-08-01';
 
-      res.render('Thoikhoabieu', {
+      res.render('pages/Thoikhoabieu', {
         khoiList,
         classes,
         subjects: [],

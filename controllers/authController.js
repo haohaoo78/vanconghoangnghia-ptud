@@ -1,7 +1,7 @@
 // controllers/UserController.js
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const TaiKhoan = require('../models/.........điền vào sau ....').TaiKhoan;
+const TaiKhoan = require('../models/').TaiKhoan;
 
 const generateToken = (username) => {
   return jwt.sign({ username }, process.env.JWT_SECRET, {

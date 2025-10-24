@@ -1,0 +1,65 @@
+<div class="home-page">
+  <h1>Chào mừng đến với Hệ thống Quản lý Học sinh THPT</h1>
+  <p>Vai trò người dùng: <strong>Giáo viên / Quản trị</strong></p>
+  <p>Đang hoạt động: <strong>Có</strong></p>
+  <p>Năm học: <strong>2024-2025</strong> • Học kỳ: <strong>I</strong></p>
+  <p>Hôm nay: <strong><%= new Date().toLocaleDateString('vi-VN') %></strong></p>
+
+  <hr>
+
+  <div class="home-cards">
+    <div class="card">
+      <h3>Thời khóa biểu</h3>
+      <p>Xem và quản lý thời khóa biểu của lớp</p>
+      <button data-page="thoikhoabieu">Mở Thời khóa biểu</button>
+    </div>
+    <div class="card">
+      <h3>Điểm số</h3>
+      <p>Xem điểm số của học sinh</p>
+      <button data-page="diemso">Mở Điểm số</button>
+    </div>
+    <div class="card">
+      <h3>Cài đặt</h3>
+      <p>Cấu hình tài khoản và hệ thống</p>
+      <button data-page="settings">Cài đặt</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const mainContent = document.getElementById('main-content');
+  const pageCache = {};
+  let currentPage = 'home';
+
+  document.querySelectorAll('.home-cards button[data-page]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const page = btn.getAttribute('data-page');
+      if (page === currentPage) return;
+
+      try {
+        let html;
+        if (pageCache[page]) {
+          html = pageCache[page];
+        } else {
+          // Fetch từ route /pages/... (render tĩnh) hoặc controller nếu có
+          const url = `/pages/${page}`; 
+          const res = await fetch(url);
+          html = await res.text();
+          pageCache[page] = html;
+        }
+
+        mainContent.innerHTML = html;
+        currentPage = page;
+
+        // ✅ Chỗ attach script đặc thù nếu cần
+        // Ví dụ:
+        // if (page === 'thoikhoabieu') { load TKB script }
+        // if (page === 'diemso') { load DiemSo script }
+
+      } catch (err) {
+        console.error(err);
+        alert('Không tải được trang.');
+      }
+    });
+  });
+</script>

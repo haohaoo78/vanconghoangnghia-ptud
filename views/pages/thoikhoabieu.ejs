@@ -1,0 +1,85 @@
+<!-- pages/thoikhoabieu.ejs -->
+<link rel="stylesheet" href="/css/ThoiKhoaBieu.css">
+<section class="content">
+  <h2>Quản lý Thời Khóa Biểu</h2>
+  <div id="toast" class="toast"></div>
+
+  <div class="controls">
+    <form id="filter-form">
+      <label>Khối:
+        <select id="Khoi" name="Khoi">
+          <option value="">--Chọn khối--</option>
+          <% khoiList.forEach(k => { %>
+            <option value="<%= k.MaKhoi %>" <%= k.MaKhoi===selectedKhoi?'selected':'' %>><%= k.TenKhoi %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label>Lớp:
+        <select name="MaLop" id="MaLop">
+          <option value="">--Chọn lớp--</option>
+          <% classes.forEach(c => { %>
+            <option value="<%= c.MaLop %>" <%= c.MaLop===selectedClass?'selected':'' %>><%= c.TenLop %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label>Năm học:
+        <select name="NamHoc" id="NamHoc">
+          <option value="">--Chọn năm học--</option>
+          <% namHocList.forEach(nh=>{ %>
+            <option value="<%= nh %>" <%= nh===selectedNamHoc?'selected':'' %>><%= nh %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label>Học kỳ:
+        <select name="KyHoc" id="KyHoc">
+          <option value="">--Chọn học kỳ--</option>
+          <% kyHocList.forEach(ky => { %>
+            <option value="<%= ky %>" <%= ky===selectedKyHoc?'selected':'' %>><%= ky %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label>Tuần:
+        <select name="LoaiTKB" id="LoaiTKB">
+          <option value="Chuan" <%= selectedLoaiTKB==='Chuan'?'selected':'' %>>TKB chuẩn</option>
+          <% for(let w=1; w<=20; w++){ %>
+            <option value="Tuan<%= w %>" <%= selectedLoaiTKB==='Tuan'+w?'selected':'' %>>Tuần <%= w %></option>
+          <% } %>
+        </select>
+      </label>
+
+      <input type="hidden" id="NamHocStart" name="NamHocStart" value="<%= selectedNamHocStart %>">
+
+      <button class="btn show-btn" type="submit">Hiển thị</button>
+    </form>
+  </div>
+
+  <div class="note">Vui lòng chọn đầy đủ khối, lớp, năm học và học kỳ để hiển thị thời khóa biểu.</div>
+  <div id="status" class="info"></div>
+
+  <div id="timetable-container">
+    <form id="timetable-form">
+      <table id="timetable-table"></table>
+      <div id="timetable-buttons">
+        <button type="button" id="save-timetable" class="btn save-btn">Lưu thời khóa biểu</button>
+        <button type="button" id="reset-week" class="btn reset-btn">Reset về TKB chuẩn</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="reset-confirm" class="confirm-box">
+    <div class="confirm-content">
+      <h3>Xác nhận Reset</h3>
+      <p>Tuần này đã có dữ liệu riêng. Bạn có chắc chắn muốn xóa và trở về TKB chuẩn không?</p>
+      <div class="confirm-actions">
+        <button id="confirm-yes" type="button">Đồng ý</button>
+        <button id="confirm-no" type="button">Hủy</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="/js/ThoiKhoaBieu.js"></script>

@@ -1,0 +1,54 @@
+<!-- views/partials/header.ejs -->
+<link rel="stylesheet" href="/css/globals.css">
+
+<div class="header-top">
+    <!-- Bên trái: logo + tiêu đề -->
+    <div class="header-brand">
+        <div class="header-logo">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3L2 9L12 15L22 9L12 3Z" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 15L12 21L22 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 12L12 18L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="header-title-wrapper">
+            <div class="header-subtitle">BỘ GIÁO DỤC VÀ ĐÀO TẠO</div>
+            <h1 class="header-title">HỆ THỐNG QUẢN LÝ HỌC SINH THPT</h1>
+        </div>
+    </div>
+
+    <!-- Bên phải: tìm kiếm + thông báo + user -->
+    <div class="header-actions">
+        <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="Tìm kiếm...">
+        </div>
+
+        <button class="icon-btn">
+            <i class="fas fa-bell"></i>
+            <span class="notification-badge"></span>
+        </button>
+
+        <button class="user-menu">
+            <div class="user-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="user-info">
+                <div class="user-role">Vai trò người dùng</div>
+                <div class="user-status">Đang hoạt động</div>
+            </div>
+            <i class="fas fa-chevron-down"></i>
+        </button>
+    </div>
+</div>
+
+<div class="header-bottom">
+    <div class="header-info">
+        <div class="info-left">
+            Năm học: 2024-2025 • Học kỳ: I
+        </div>
+        <div class="info-right">
+            Hôm nay: 24/10/2025
+        </div>
+    </div>
+</div>

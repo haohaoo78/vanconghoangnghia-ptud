@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Hệ thống Quản lý</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<%- include('partials/header') %>
+
+<main class="container">
+  <% if (user) { %>
+    <!-- Sidebar chỉ hiển thị khi đã login -->
+    <aside class="sidebar">
+      <%- include('partials/sidebar') %>
+    </aside>
+  <% } %>
+
+  <!-- Nội dung chính -->
+  <section id="main-content" class="content">
+    <% if (!user) { %>
+      <%- include('pages/dangnhap') %>
+    <% } else { %>
+      <h2>Trang chủ</h2>
+      <p>Chào mừng, <%= user.TenTaiKhoan %>!</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+
+<script src="/js/1_main.js"></script>
+</body>
+</html>
