@@ -19,7 +19,7 @@
     <!-- Nội dung chính -->
     <section id="main-content" class="content">
       <% if(page === 'home'){ %>
-        <h2>Trang Home</h2>
+        <%- include('pages/'+'home') %>
       <% } else { %>
         <%- include('pages/' + page) %>
       <% } %>
@@ -33,5 +33,6 @@
 </main>
 
 <%- include('partials/footer') %>
+<script src="/js/1_main.js"></script>
 </body>
 </html>

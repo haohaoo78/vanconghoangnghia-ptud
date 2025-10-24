@@ -12,7 +12,7 @@ const ThoiKhoaBieuController = require('./controllers/ThoiKhoaBieuController');
 const DuyetYeuCauSuaDiemController = require('./controllers/DuyetYeuCauSuaDiemController');
 
 // Routes
-const DangNhapRoutes = require('./routes/DangNhapRoutes');
+const DangNhapRoutes = require('./routes/DangNhapRouters');
 
 const app = express();
 
