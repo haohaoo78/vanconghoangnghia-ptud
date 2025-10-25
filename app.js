@@ -7,9 +7,6 @@ const bodyParser = require('body-parser');
 // DB global
 global.db = require('./config/database');
 
-// Controllers
-const ThoiKhoaBieuController = require('./controllers/ThoiKhoaBieuController');
-const DuyetYeuCauSuaDiemController = require('./controllers/DuyetYeuCauSuaDiemController');
 
 // Routes
 const DangNhapRoutes = require('./routes/DangNhapRouters');

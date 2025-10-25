@@ -38,7 +38,7 @@ class DangNhapController {
         console.error("❌ Lỗi destroy session:", err);
         return res.json({ success: false, message: "Không thể đăng xuất" });
       }
-      res.redirect('/DangNhap');
+      res.redirect('/');
     });
   }
 }
