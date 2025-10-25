@@ -1,14 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('../controllers/DuyetYeuCauSuaDiemController');
+const DuyetYeuCauSuaDiemController = require('../controllers/DuyetYeuCauSuaDiemController');
 
-// Lấy dữ liệu page
-router.get('/render', controller.renderPage.bind(controller));
-
-// API lấy danh sách yêu cầu
-router.post('/getRequests', controller.getRequests.bind(controller));
-
-// API duyệt yêu cầu
-router.post('/approve', controller.approveRequest.bind(controller));
+router.get('/render', DuyetYeuCauSuaDiemController.renderPage);
+router.post('/getLopTheoKhoi', DuyetYeuCauSuaDiemController.getLopTheoKhoi);
+router.post('/getRequests', DuyetYeuCauSuaDiemController.getRequests);
+router.post('/updateStatus', DuyetYeuCauSuaDiemController.updateStatus);
 
 module.exports = router;

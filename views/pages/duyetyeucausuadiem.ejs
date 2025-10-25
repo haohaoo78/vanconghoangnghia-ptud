@@ -1,0 +1,90 @@
+<!-- pages/duyetsuadiem.ejs -->
+<link rel="stylesheet" href="/css/DuyetYeuCauSuaDiem.css">
+
+<section class="content">
+  <h2>Duyệt Yêu Cầu Sửa Điểm</h2>
+  <div id="toast" class="toast"></div>
+
+  <div class="controls">
+    <form id="filter-form">
+      <label>Khối:
+        <select id="Khoi" name="Khoi">
+          <option value="">--Chọn khối--</option>
+          <% khoiList.forEach(k => { %>
+            <option value="<%= k.MaKhoi %>" <%= k.MaKhoi===selectedKhoi?'selected':'' %>><%= k.TenKhoi %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label>Lớp:
+        <select id="Lop" name="Lop">
+          <option value="">--Chọn lớp--</option>
+          <% classes.forEach(c => { %>
+            <option value="<%= c.MaLop %>" <%= c.MaLop===selectedLop?'selected':'' %>><%= c.TenLop %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label>Môn học:
+        <select id="MonHoc" name="MonHoc">
+          <option value="">--Chọn môn--</option>
+          <% subjects.forEach(m => { %>
+            <option value="<%= m.MaMon %>" <%= m.MaMon===selectedMon?'selected':'' %>><%= m.TenMon %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <button type="submit" class="btn show-btn">Hiển thị</button>
+    </form>
+  </div>
+
+  <div id="status" class="info">Chọn khối, lớp và môn để hiển thị danh sách yêu cầu sửa điểm.</div>
+
+  <div id="requests-container">
+    <table id="requests-table">
+      <thead>
+        <tr>
+          <th>STT</th>
+          <th>Học sinh</th>
+          <th>Môn học</th>
+          <th>Loại điểm</th>
+          <th>Điểm cũ</th>
+          <th>Điểm đề nghị</th>
+          <th>Lý do</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (requests && requests.length > 0) { %>
+          <% requests.forEach((r, index) => { %>
+            <tr>
+              <td><%= index + 1 %></td>
+              <td><%= r.HoTen %></td>
+              <td><%= r.TenMon %></td>
+              <td><%= r.LoaiDiem %></td>
+              <td><%= r.DiemCu %></td>
+              <td><%= r.DiemMoi %></td>
+              <td><%= r.LyDo %></td>
+              <td class="<%= r.TrangThai === 'Chờ duyệt' ? 'pending' : (r.TrangThai === 'Đã duyệt' ? 'approved' : 'rejected') %>">
+                <%= r.TrangThai %>
+              </td>
+              <td>
+                <% if (r.TrangThai === 'Chờ duyệt') { %>
+                  <button class="btn approve-btn" data-id="<%= r.MaYeuCau %>">Duyệt</button>
+                  <button class="btn reject-btn" data-id="<%= r.MaYeuCau %>">Từ chối</button>
+                <% } else { %>
+                  <em>Đã xử lý</em>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        <% } else { %>
+          <tr><td colspan="9" style="text-align:center;">Không có yêu cầu nào</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script src="/js/DuyetYeuCauSuaDiem.js"></script>

@@ -1,0 +1,32 @@
+.content {
+  padding: 20px;
+}
+
+.controls {
+  margin-bottom: 20px;
+}
+
+#requests-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#requests-table th, #requests-table td {
+  padding: 8px;
+  border: 1px solid #ccc;
+  text-align: center;
+}
+
+.pending { color: orange; font-weight: 600; }
+.approved { color: green; font-weight: 600; }
+.rejected { color: red; font-weight: 600; }
+
+.btn {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.approve-btn { background-color: #4CAF50; color: white; }
+.reject-btn { background-color: #f44336; color: white; }
