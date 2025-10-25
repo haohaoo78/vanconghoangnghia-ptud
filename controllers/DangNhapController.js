@@ -24,7 +24,6 @@ class DangNhapController {
         role: user.VaiTro || user.LoaiTaiKhoan
       };
 
-      // Trả luôn redirect nếu cần
       return res.json({ success: true, message: "Đăng nhập thành công", redirect: '/' });
 
     } catch (err) {
@@ -35,7 +34,10 @@ class DangNhapController {
 
   logout(req, res) {
     req.session.destroy(err => {
-      if (err) return res.json({ success: false, message: "Không thể đăng xuất" });
+      if (err) {
+        console.error("❌ Lỗi destroy session:", err);
+        return res.json({ success: false, message: "Không thể đăng xuất" });
+      }
       res.redirect('/DangNhap');
     });
   }
